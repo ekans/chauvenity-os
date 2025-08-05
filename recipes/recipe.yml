@@ -6,3 +6,8 @@ base-image: ghcr.io/ublue-os/bluefin:stable
 image-version: latest
 
 modules:
+  - type: files
+    files:
+      - source: system
+        destination: /
+  - type: signing
