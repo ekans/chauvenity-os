@@ -20,4 +20,9 @@ modules:
           - com.brave.Browser
       - scope: user # Also add Flathub user repo, but no user packages
 
+  - type: soar
+    additional-repos: true
+    auto-upgrade: true
+    upgrade-interval: '3h'
+
   - type: signing
