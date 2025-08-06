@@ -25,4 +25,8 @@ modules:
     auto-upgrade: true
     upgrade-interval: '3h'
 
+  - type: chezmoi
+    repository: "https://github.com/ekans/dotfiles"
+    file-conflict-policy: replace
+
   - type: signing
