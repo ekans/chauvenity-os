@@ -28,6 +28,10 @@ modules:
     install:
       - brave-browser
 
+  - type: bling
+    install:
+      - 1password
+
   - type: soar
     additional-repos: true
     auto-upgrade: true
