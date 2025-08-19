@@ -26,8 +26,9 @@ modules:
         - erlang-odbc.x86_64
         - fop
         - java-21-openjdk-devel.x86_64
-        - libiodbc unixODBC-devel.x86_64
+        - libiodbc
         - ncurses-devel
+        - unixODBC-devel.x86_64
         - wxBase
         - wxGTK-devel
 
