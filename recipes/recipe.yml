@@ -25,6 +25,7 @@ modules:
         - automake
         - erlang-odbc.x86_64
         - fop
+        - gcc-c++
         - java-21-openjdk-devel.x86_64
         - libiodbc
         - ncurses-devel
