@@ -41,9 +41,10 @@ modules:
     repository: "https://github.com/ekans/dotfiles"
     file-conflict-policy: replace
 
-  - type: script
-    snippets:
-      - "brew install mise"
+  - type: dnf
+    repos:
+      copr:
+        - jdxcode/mise
 
   - type: script
     snippets:
