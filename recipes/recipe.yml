@@ -43,7 +43,7 @@ modules:
 
   - type: script
     snippets:
-      - "curl https://mise.run | sh"
+      - "brew install mise"
 
   - type: script
     snippets:
