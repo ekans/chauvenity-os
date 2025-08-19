@@ -18,6 +18,36 @@ modules:
         # If no repo information is specified, Flathub will be used by default
       - scope: user # Also add Flathub user repo, but no user packages
 
+  - type: dnf
+    install:
+      packages:
+        - autoconf
+        - automake
+        - erlang-odbc.x86_64
+        - fop
+        - java-21-openjdk-devel.x86_64
+        - libiodbc unixODBC-devel.x86_64
+        - ncurses-devel
+        - wxBase
+        - wxGTK-devel
+
+  - type: soar
+    additional-repos: true
+    auto-upgrade: true
+    upgrade-interval: '3h'
+
+  - type: chezmoi
+    repository: "https://github.com/ekans/dotfiles"
+    file-conflict-policy: replace
+
+  - type: script
+    snippets:
+      - "curl https://mise.run | sh"
+
+  - type: script
+    snippets:
+      - "mise use --global erlang@27.1 elixi@1.17"
+
   - type: rpm-ostree
     repos:
       - https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
@@ -31,14 +61,5 @@ modules:
   - type: bling
     install:
       - 1password
-
-  - type: soar
-    additional-repos: true
-    auto-upgrade: true
-    upgrade-interval: '3h'
-
-  - type: chezmoi
-    repository: "https://github.com/ekans/dotfiles"
-    file-conflict-policy: replace
 
   - type: signing
