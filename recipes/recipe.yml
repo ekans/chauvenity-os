@@ -51,7 +51,7 @@ modules:
 
   - type: script
     snippets:
-      - "mise use --global erlang@27.1 elixi@1.17"
+      - "mise use --global erlang@27.1 elixir@1.17"
 
   - type: rpm-ostree
     repos:
