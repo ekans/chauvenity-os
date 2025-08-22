@@ -2,7 +2,7 @@
 name: chauvenity-os
 description: Personal image
 
-base-image: ghcr.io/ublue-os/bluefin
+base-image: ghcr.io/ublue-os/bluefin-dx
 image-version: stable
 
 modules:
