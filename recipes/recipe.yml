@@ -71,4 +71,10 @@ modules:
       packages:
         - inotify-tools
 
+  # Brod dependencies
+  - type: dnf
+    install:
+      packages:
+        - cmake
+
   - type: signing
