@@ -35,15 +35,17 @@ modules:
       packages:
         - mise
 
-  - type: rpm-ostree
+  - type: dnf
     repos:
-      - https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
+      files:
+        - https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
+      keys:
+        - https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
     optfix:
       - brave.com
-    keys:
-      - https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
     install:
-      - brave-browser
+      packages:
+        - brave-browser
 
   - type: bling
     install:
