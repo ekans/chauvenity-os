@@ -79,4 +79,14 @@ modules:
       packages:
         - cmake
 
+  - type: dnf
+    repos:
+      files:
+        - wazuh.repo
+      keys:
+        - https://packages.wazuh.com/key/GPG-KEY-WAZUH
+    install:
+      packages:
+        - wazuh-agent
+
   - type: signing
