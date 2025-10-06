@@ -79,14 +79,9 @@ modules:
       packages:
         - cmake
 
-  - type: dnf
-    repos:
-      files:
-        - wazuh.repo
-      keys:
-        - https://packages.wazuh.com/key/GPG-KEY-WAZUH
-    install:
-      packages:
-        - wazuh-agent
+  - type: systemd
+    system:
+      enabled:
+        - wazuh-agent.service
 
   - type: signing
