@@ -79,6 +79,17 @@ modules:
       packages:
         - cmake
 
+  - type: dnf
+    repos:
+      files:
+        - wazuh.repo
+      keys:
+        - https://packages.wazuh.com/key/GPG-KEY-WAZUH
+    install:
+      packages:
+        - chkconfig
+        - wazuh-agent-4.12.0-1
+
   - type: systemd
     system:
       enabled:
