@@ -90,6 +90,10 @@ modules:
         - chkconfig
         - wazuh-agent-4.12.0-1
 
+  - type: script
+    scripts:
+      - wazuh-install.sh
+
   - type: systemd
     system:
       enabled:
