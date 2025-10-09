@@ -1,0 +1,33 @@
+[Unit]
+Description=Wazuh Agent
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=docker.io/wazuh/wazuh-agent:4.12.0
+ContainerName=wazuh-agent
+
+# Mount configuration and data
+Volume=/etc/wazuh-agent:/var/ossec/etc:Z
+Volume=/var/lib/wazuh-agent:/var/ossec/data:Z
+Volume=/var/log/wazuh-agent:/var/ossec/logs:Z
+
+# Network - host mode for agent communication
+Network=host
+
+# Environment variables for initial setup
+Environment=WAZUH_MANAGER=your-manager-ip
+Environment=WAZUH_AGENT_NAME=%H
+
+# Run as root (required for security monitoring)
+User=root
+
+# Security options
+SecurityLabelDisable=false
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target default.target
