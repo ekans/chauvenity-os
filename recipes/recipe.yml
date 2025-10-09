@@ -79,18 +79,4 @@ modules:
       packages:
         - cmake
 
-  - type: dnf
-    repos:
-      files:
-        - wazuh.repo
-
-  - type: script
-    scripts:
-      - install-wazuh-agent.sh
-
-  - type: systemd
-    system:
-      enabled:
-        - wazuh-agent-init.service
-
   - type: signing
