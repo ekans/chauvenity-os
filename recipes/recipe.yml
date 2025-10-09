@@ -79,4 +79,16 @@ modules:
       packages:
         - cmake
 
+  - type: dnf
+    repos:
+      files:
+        - wazuh.repo
+    install:
+      packages:
+        - wazuh-agent-4.12.0-1
+
+  - type: script
+    snippets:
+      - mv /var/ossec /usr/local/ossec
+
   - type: signing

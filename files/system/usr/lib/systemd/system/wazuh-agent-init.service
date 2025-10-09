@@ -1,0 +1,13 @@
+[Unit]
+Description=Initialize Wazuh Agent Configuration
+Before=wazuh-agent.service
+ConditionPathExists=!/var/ossec/etc/ossec.conf
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Copy default Wazuh config from /usr/local/ossec to /var/ossec on first boot
+ExecStart=/usr/bin/cp -a /usr/local/ossec /var/ossec
+
+[Install]
+WantedBy=multi-user.target
