@@ -8,9 +8,9 @@ Image=docker.io/wazuh/wazuh-agent:4.12.0
 ContainerName=wazuh-agent
 
 # Mount configuration and data
-Volume=/etc/wazuh-agent:/var/ossec/etc:Z
-Volume=/var/lib/wazuh-agent:/var/ossec/data:Z
-Volume=/var/log/wazuh-agent:/var/ossec/logs:Z
+Volume=/var/ossec/etc:/var/ossec/etc:Z
+Volume=/var/ossec/data:/var/ossec/data:Z
+Volume=/var/ossec/logs:/var/ossec/logs:Z
 
 # Network - host mode for agent communication
 Network=host
