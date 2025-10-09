@@ -6,8 +6,14 @@ ConditionPathExists=!/var/ossec/etc/ossec.conf
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+# Create wazuh group if it doesn't exist
+ExecStartPre=/bin/sh -c 'getent group wazuh > /dev/null 2>&1 || groupadd -r wazuh'
+# Create wazuh user if it doesn't exist
+ExecStartPre=/bin/sh -c 'getent passwd wazuh > /dev/null 2>&1 || useradd -g wazuh -d /var/ossec -r -s /sbin/nologin wazuh'
 # Copy default Wazuh config from /usr/local/ossec to /var/ossec on first boot
 ExecStart=/usr/bin/cp -a /usr/local/ossec /var/ossec
+# Fix ownership to wazuh:wazuh
+ExecStartPost=/usr/bin/chown -R wazuh:wazuh /var/ossec
 
 [Install]
 WantedBy=multi-user.target
