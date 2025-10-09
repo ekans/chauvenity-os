@@ -83,12 +83,14 @@ modules:
     repos:
       files:
         - wazuh.repo
-    install:
-      packages:
-        - wazuh-agent-4.12.0-1
 
   - type: script
-    snippets:
-      - mv /var/ossec /usr/local/ossec
+    scripts:
+      - install-wazuh-agent.sh
+
+  - type: systemd
+    system:
+      enabled:
+        - wazuh-agent-init.service
 
   - type: signing
