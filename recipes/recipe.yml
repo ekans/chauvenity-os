@@ -41,8 +41,6 @@ modules:
         - https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
       keys:
         - https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
-    optfix:
-      - brave.com
     install:
       packages:
         - brave-browser
