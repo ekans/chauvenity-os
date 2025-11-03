@@ -33,7 +33,6 @@ jobs:
       - name: Build Custom Image
         uses: blue-build/github-action@v1.9
         with:
-          cli_version: v0.9.22
           recipe: ${{ matrix.recipe }}
           cosign_private_key: ${{ secrets.SIGNING_SECRET }}
           registry_token: ${{ github.token }}
