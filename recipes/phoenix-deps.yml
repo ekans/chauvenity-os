@@ -1,6 +1,7 @@
 # Phoenix framework and related dependencies
-- type: dnf
-  install:
-    packages:
-      - inotify-tools # Phoenix live reload
-      - cmake # Brod/Kafka dependencies
+modules:
+  - type: dnf
+    install:
+      packages:
+        - inotify-tools # Phoenix live reload
+        - cmake # Brod/Kafka dependencies
