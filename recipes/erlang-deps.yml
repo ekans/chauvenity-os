@@ -1,0 +1,15 @@
+# Dependencies for building Erlang via mise
+- type: dnf
+  install:
+    packages:
+      - autoconf
+      - automake
+      - erlang-odbc.x86_64
+      - fop
+      - gcc-c++
+      - java-21-openjdk-devel.x86_64
+      - libiodbc
+      - ncurses-devel
+      - unixODBC-devel.x86_64
+      - wxBase
+      - wxGTK-devel

@@ -1,0 +1,19 @@
+# User-facing tools and applications
+- type: dnf
+  repos:
+    copr:
+      - jdxcode/mise
+      - scottames/ghostty
+    files:
+      - https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
+    keys:
+      - https://brave-browser-rpm-release.s3.brave.com/brave-core.asc
+  install:
+    packages:
+      - brave-browser
+      - ghostty
+      - mise
+
+- type: bling
+  install:
+    - 1password
