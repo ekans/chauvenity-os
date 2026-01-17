@@ -1,42 +1,69 @@
-# chauvenity-os &nbsp; [![bluebuild build badge](https://github.com/ekans/chauvenity-os/actions/workflows/build.yml/badge.svg)](https://github.com/ekans/chauvenity-os/actions/workflows/build.yml)
+# chauvenity-os
 
-See the [BlueBuild docs](https://blue-build.org/how-to/setup/) for quick setup instructions for setting up your own repository based on this template.
+[![bluebuild build badge](https://github.com/ekans/chauvenity-os/actions/workflows/build.yml/badge.svg)](https://github.com/ekans/chauvenity-os/actions/workflows/build.yml)
 
-After setup, it is recommended you update this README to describe your custom image.
+Personal Fedora Atomic development workstation for Elixir/Erlang work at Airnity, built with [BlueBuild](https://blue-build.org/).
+
+**Why "chauvenity"?** A French wordplay on my company name: Airnity → air ≈ hair → *chauve* (French for bald) + nity = chauvenity.
+
+## Base Image
+
+Built on [bluefin-dx](https://github.com/ublue-os/bluefin) (stable), the developer experience variant of Universal Blue's Fedora Atomic image.
+
+## What's Included
+
+### Development Tools
+- **mise** - Polyglot dev tool version manager (via COPR)
+- **1password** - Password manager
+
+### Browser
+- **Brave** - Privacy-focused browser
+
+### Erlang/OTP Build Dependencies
+- autoconf, automake, gcc-c++
+- ncurses-devel, wxBase, wxGTK-devel
+- erlang-odbc, unixODBC-devel, libiodbc
+- java-21-openjdk-devel
+- fop
+
+### Phoenix Framework Dependencies
+- inotify-tools (live reload)
+
+### Kafka/Brod Dependencies
+- cmake
 
 ## Installation
 
-> [!WARNING]  
+> [!WARNING]
 > [This is an experimental feature](https://www.fedoraproject.org/wiki/Changes/OstreeNativeContainerStable), try at your own discretion.
 
-To rebase an existing atomic Fedora installation to the latest build:
+To rebase an existing Fedora Atomic installation:
 
-- First rebase to the unsigned image, to get the proper signing keys and policies installed:
-  ```
-  rpm-ostree rebase ostree-unverified-registry:ghcr.io/ekans/chauvenity-os:latest
-  ```
-- Reboot to complete the rebase:
-  ```
-  systemctl reboot
-  ```
-- Then rebase to the signed image, like so:
-  ```
-  rpm-ostree rebase ostree-image-signed:docker://ghcr.io/ekans/chauvenity-os:latest
-  ```
-- Reboot again to complete the installation
-  ```
-  systemctl reboot
-  ```
+1. Rebase to the unsigned image (to get signing keys installed):
+   ```
+   rpm-ostree rebase ostree-unverified-registry:ghcr.io/ekans/chauvenity-os:latest
+   ```
 
-The `latest` tag will automatically point to the latest build. That build will still always use the Fedora version specified in `recipe.yml`, so you won't get accidentally updated to the next major version.
+2. Reboot:
+   ```
+   systemctl reboot
+   ```
 
-## ISO
+3. Rebase to the signed image:
+   ```
+   rpm-ostree rebase ostree-image-signed:docker://ghcr.io/ekans/chauvenity-os:latest
+   ```
 
-If build on Fedora Atomic, you can generate an offline ISO with the instructions available [here](https://blue-build.org/learn/universal-blue/#fresh-install-from-an-iso). These ISOs cannot unfortunately be distributed on GitHub for free due to large sizes, so for public projects something else has to be used for hosting.
+4. Reboot again:
+   ```
+   systemctl reboot
+   ```
+
+The `latest` tag always points to the most recent build using the Fedora version specified in `recipes/recipe.yml`.
 
 ## Verification
 
-These images are signed with [Sigstore](https://www.sigstore.dev/)'s [cosign](https://github.com/sigstore/cosign). You can verify the signature by downloading the `cosign.pub` file from this repo and running the following command:
+Images are signed with [Sigstore](https://www.sigstore.dev/)'s [cosign](https://github.com/sigstore/cosign). Verify with:
 
 ```bash
 cosign verify --key cosign.pub ghcr.io/ekans/chauvenity-os
