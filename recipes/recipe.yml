@@ -13,7 +13,6 @@ modules:
       - scope: user
 
   - type: soar
-    additional-repos: true
     auto-upgrade: true
     upgrade-interval: '3h'
 
