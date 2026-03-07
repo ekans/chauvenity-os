@@ -5,6 +5,7 @@ modules:
       copr:
         - jdxcode/mise
         - scottames/ghostty
+        - aleasto/waydroid
       files:
         - https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo
         - https://aaddrick.github.io/claude-desktop-debian/rpm/claude-desktop.repo
@@ -17,6 +18,7 @@ modules:
         - claude-desktop
         - ghostty
         - mise
+        - waydroid
 
   - type: bling
     install:
