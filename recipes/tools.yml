@@ -23,3 +23,10 @@ modules:
   - type: bling
     install:
       - 1password
+
+  - type: script
+    snippets:
+      - |+
+        SBX_URL="https://github.com/docker/sbx-releases/releases/latest/download/DockerSandboxes-linux-amd64-rockylinux8.rpm"
+        echo "Installing sbx from ${SBX_URL}"
+        rpm-ostree install --idempotent "${SBX_URL}"
