@@ -1,0 +1,36 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices",
+  ],
+
+  // Do not rebase open PRs when the default branch moves.
+  "rebaseWhen": "never",
+
+  // Track inline-annotated dependencies in recipe yamls.
+  //
+  // Usage: place a comment above the line containing the version, e.g.
+  //
+  //   # renovate: datasource=github-releases depName=docker/sbx-releases
+  //   - https://github.com/docker/sbx-releases/releases/download/v0.30.0/...
+  //
+  // The regex captures the version segment between /download/ and the next /.
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^recipes/.+\\.ya?ml$/",
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?\\s+[^\\n]*?/releases/download/(?<currentValue>[^/\\s]+)/",
+      ],
+    },
+  ],
+
+  "packageRules": [
+    {
+      "automerge": true,
+      "matchUpdateTypes": ["pin", "pinDigest", "digest"],
+    },
+  ],
+}
