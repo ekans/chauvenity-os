@@ -66,6 +66,17 @@ To rebase an existing Fedora Atomic installation:
 
 The `latest` tag always points to the most recent build using the Fedora version specified in `recipes/recipe.yml`.
 
+## Local Development
+
+Local build and rebase tasks are exposed through [mise-en-place](https://mise.jdx.dev/) in [`mise.toml`](./mise.toml). The [BlueBuild CLI](https://blue-build.org/learn/getting-started/#installing-the-bluebuild-cli) must be installed on the host.
+
+```bash
+mise tasks               # list available tasks
+mise run build           # build the image locally
+mise run rebase          # build and rebase the running system onto it
+mise run generate-iso    # generate a bootable ISO from the published image
+```
+
 ## Verification
 
 Images are signed with [Sigstore](https://www.sigstore.dev/)'s [cosign](https://github.com/sigstore/cosign). Verify with:
