@@ -1,0 +1,23 @@
+# mise-en-place tasks for chauvenity-os
+# https://mise.jdx.dev/tasks/toml-tasks.html
+#
+# List tasks:        mise tasks
+# Run a task:        mise run <name>
+# Task details:      mise tasks info <name>
+
+[env]
+# Single source of truth for the image reference used by all tasks below.
+IMAGE = "ghcr.io/ekans/chauvenity-os:latest"
+RECIPE = "recipes/recipe.yml"
+
+[tasks.build]
+description = "Build the image locally with the BlueBuild CLI"
+run = "bluebuild build $RECIPE"
+
+[tasks.rebase]
+description = "Build locally and rebase the running system onto the resulting image"
+run = "sudo bluebuild rebase --tempdir /var/tmp $RECIPE"
+
+[tasks.generate-iso]
+description = "Generate a bootable ISO from the published image"
+run = "sudo bluebuild generate-iso --iso-name chauvenity-latest.iso image $IMAGE"
