@@ -84,3 +84,13 @@ Images are signed with [Sigstore](https://www.sigstore.dev/)'s [cosign](https://
 ```bash
 cosign verify --key cosign.pub ghcr.io/ekans/chauvenity-os
 ```
+
+## Dependency updates
+
+Managed by [Renovate](https://docs.renovatebot.com/) (config: `.github/renovate.json5`, extends [`config:best-practices`](https://docs.renovatebot.com/upgrade-best-practices/)).
+
+Coverage:
+- GitHub Actions in `.github/workflows/` (built-in `github-actions` manager).
+- Pinned upstream RPMs in `recipes/*.yml` via inline `# renovate: datasource=... depName=...` annotations on the line above the version.
+
+Requires the [Mend Renovate GitHub App](https://github.com/apps/renovate) to be installed on the repository for PRs to be opened.
