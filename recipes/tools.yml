@@ -19,14 +19,11 @@ modules:
         - ghostty
         - mise
         - waydroid
+        # Docker Sandboxes (sbx) — installed directly from upstream RPM URL.
+        # The `dnf` module accepts http(s) URLs under install.packages.
+        # https://blue-build.org/reference/modules/dnf/
+        - https://github.com/docker/sbx-releases/releases/latest/download/DockerSandboxes-linux-amd64-rockylinux8.rpm
 
   - type: bling
     install:
       - 1password
-
-  - type: script
-    snippets:
-      - |+
-        SBX_URL="https://github.com/docker/sbx-releases/releases/latest/download/DockerSandboxes-linux-amd64-rockylinux8.rpm"
-        echo "Installing sbx from ${SBX_URL}"
-        rpm-ostree install --idempotent "${SBX_URL}"
