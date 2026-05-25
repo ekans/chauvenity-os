@@ -13,24 +13,29 @@ Built on [bluefin-dx](https://github.com/ublue-os/bluefin) (stable), the develop
 ## What's Included
 
 ### Development Tools
-- **mise** - Polyglot dev tool version manager (via COPR)
-- **1password** - Password manager
+- **mise** (COPR `jdxcode/mise`) — polyglot dev tool version manager
+- **ghostty** (COPR `scottames/ghostty`) — GPU-accelerated terminal
+- **claude-desktop** — Anthropic Claude desktop client
+- **Docker Sandboxes (sbx)** — installed from upstream GitHub release
+- **1password** (via `bling` module)
+- **waydroid** (COPR `aleasto/waydroid`) — Android container runtime
 
 ### Browser
-- **Brave** - Privacy-focused browser
+- **Brave** — privacy-focused browser
 
 ### Erlang/OTP Build Dependencies
-- autoconf, automake, gcc-c++
+- autoconf, automake
 - ncurses-devel, wxBase, wxGTK-devel
 - erlang-odbc, unixODBC-devel, libiodbc
-- java-21-openjdk-devel
+- java-25-openjdk-devel
 - fop
 
-### Phoenix Framework Dependencies
-- inotify-tools (live reload)
+### Phoenix / Brod Dependencies
+- inotify-tools (Phoenix live reload)
+- cmake (Brod / Kafka build)
 
-### Kafka/Brod Dependencies
-- cmake
+### Dotfiles
+Managed via [chezmoi](https://www.chezmoi.io/) from [ekans/dotfiles](https://github.com/ekans/dotfiles).
 
 ## Installation
 
