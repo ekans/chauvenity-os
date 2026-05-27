@@ -85,6 +85,17 @@ Images are signed with [Sigstore](https://www.sigstore.dev/)'s [cosign](https://
 cosign verify --key cosign.pub ghcr.io/ekans/chauvenity-os
 ```
 
+## Known issues / workarounds
+
+- **LUKS keymap baked into initramfs (F44+).** F44 dracut 108 silently
+  drops keymaps from the upstream bluefin-dx pre-baked initramfs, which
+  breaks AZERTY LUKS unlock. chauvenity-os force-includes `fr-afnor` via
+  a dracut drop-in and regenerates the initramfs at image build time.
+  Tracked by [`docs/adr/0001-bake-luks-keymap-into-initramfs.md`](./docs/adr/0001-bake-luks-keymap-into-initramfs.md)
+  and the [`upstream-initramfs-check`](./.github/workflows/upstream-initramfs-check.yml)
+  workflow (inverted-semantics watcher: red means upstream fixed it and the
+  workaround can be removed).
+
 ## Dependency updates
 
 Managed by [Renovate](https://docs.renovatebot.com/) (config: `.github/renovate.json5`, extends [`config:best-practices`](https://docs.renovatebot.com/upgrade-best-practices/)).

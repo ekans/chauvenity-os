@@ -14,4 +14,15 @@ modules:
   - from-file: erlang-deps.yml
   - from-file: phoenix-deps.yml
 
+  # WORKAROUND: bake fr-afnor keymap into the initramfs so LUKS unlock works
+  # on F44+. See docs/adr/0001-bake-luks-keymap-into-initramfs.md.
+  - type: files
+    files:
+      - source: system
+        destination: /
+
   - type: signing
+
+  # Must remain last: regenerates the initramfs after all other modules have
+  # dropped their files into the image.
+  - type: initramfs
