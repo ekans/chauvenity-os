@@ -3,13 +3,13 @@
 # Job A (upstream regression watcher) has INVERTED semantics:
 #   - GREEN  = workaround still needed (upstream initramfs still lacks the keymap).
 #   - RED    = good news, upstream now ships the keymap; consider removing the
-#              workaround (drop-in file, recipe entries, and ADR 0001).
+#              workaround (drop-in file, kargs drop-in, recipe entries, ADR 0002).
 #
 # Job B (own-image positive check) has NORMAL semantics:
 #   - GREEN  = our published image contains the keymap as expected.
 #   - RED    = our workaround is broken; the image will not unlock LUKS.
 #
-# See docs/adr/0001-bake-luks-keymap-into-initramfs.md.
+# See docs/adr/0002-fr-keymap-rd-vconsole-karg.md (supersedes 0001).
 
 name: upstream-initramfs-check
 
@@ -25,7 +25,7 @@ jobs:
     name: Job A — upstream regression watcher (inverted semantics)
     runs-on: ubuntu-latest
     steps:
-      - name: Check whether upstream bluefin-dx initramfs ships fr-afnor
+      - name: Check whether upstream bluefin-dx initramfs ships the fr keymap
         run: |
           set -eo pipefail
           out=$(podman run --rm --pull=always \
@@ -39,18 +39,18 @@ jobs:
                     }
                     lsinitrd "${imgs[0]}"
                   ')
-          if echo "$out" | grep -q fr-afnor.map.gz; then
+          if echo "$out" | grep -q '/fr\.map\.gz'; then
             echo "Upstream now ships the keymap. Consider removing the workaround."
-            echo "See docs/adr/0001-bake-luks-keymap-into-initramfs.md (Removal criteria)."
+            echo "See docs/adr/0002-fr-keymap-rd-vconsole-karg.md (Removal criteria)."
             exit 1
           fi
-          echo "Workaround still needed (upstream initramfs lacks fr-afnor)."
+          echo "Workaround still needed (upstream initramfs lacks fr.map.gz)."
 
   own-image-positive-check:
     name: Job B — own-image positive check
     runs-on: ubuntu-latest
     steps:
-      - name: Check that chauvenity-os initramfs contains fr-afnor
+      - name: Check that chauvenity-os initramfs contains the fr keymap
         run: |
           set -eo pipefail
           out=$(podman run --rm --pull=always \
@@ -64,8 +64,8 @@ jobs:
                     }
                     lsinitrd "${imgs[0]}"
                   ')
-          if ! echo "$out" | grep -q fr-afnor.map.gz; then
+          if ! echo "$out" | grep -q '/fr\.map\.gz'; then
             echo "Our own image no longer contains the keymap; workaround is broken."
             exit 1
           fi
-          echo "OK: chauvenity-os initramfs contains fr-afnor.map.gz."
+          echo "OK: chauvenity-os initramfs contains fr.map.gz."

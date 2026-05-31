@@ -1,0 +1,11 @@
+# Force the initramfs console keymap to plain `fr` for the LUKS unlock prompt.
+#
+# F44 dracut 108 / kbd 2.9 broke the boot cryptsetup prompt keymap: with
+# `vconsole.keymap=fr-afnor` (no rd. prefix) the prompt fell back to a layout
+# that rejected the AZERTY passphrase. Targeting the initramfs explicitly with
+# `rd.vconsole.keymap=fr` (plain fr) makes the prompt unlock on the first try.
+#
+# Pairs with the dracut drop-in that bakes fr.map.gz into the initramfs:
+#   /usr/lib/dracut/dracut.conf.d/99-chauvenity-keymap.conf
+# See docs/adr/0002-fr-keymap-rd-vconsole-karg.md.
+kargs = ["rd.vconsole.keymap=fr"]
