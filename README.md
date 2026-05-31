@@ -107,5 +107,6 @@ Managed by [Renovate](https://docs.renovatebot.com/) (config: `.github/renovate.
 Coverage:
 - GitHub Actions in `.github/workflows/` (built-in `github-actions` manager).
 - Pinned upstream RPMs in `recipes/*.yml` via inline `# renovate: datasource=... depName=...` annotations on the line above the version.
+- Base image digest in `recipes/recipe.yml` (`image-version: stable@sha256:...`), bumped by Renovate to drive rebuilds only when upstream changes. See [`docs/adr/0002-pin-base-digest-renovate.md`](./docs/adr/0002-pin-base-digest-renovate.md).
 
 Requires the [Mend Renovate GitHub App](https://github.com/apps/renovate) to be installed on the repository for PRs to be opened.
