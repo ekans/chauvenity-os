@@ -3,7 +3,11 @@ name: chauvenity-os
 description: Personal image
 
 base-image: ghcr.io/ublue-os/bluefin-dx
-image-version: stable
+# Digest-pin: BlueBuild has no first-class digest field. Relies on the CLI's
+# lenient (unanchored) Tag parser accepting tag@digest. Renovate bumps the
+# digest (see .github/renovate.json5). Re-verify on CLI upgrades.
+# See docs/adr/0002-pin-base-digest-renovate.md.
+image-version: stable@sha256:a81bde003edbf62014a2fdd1a6ad2811ad1350e74c56cc11dd7dbdeeccb589d7
 
 modules:
   - type: chezmoi
