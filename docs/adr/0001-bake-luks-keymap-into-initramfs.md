@@ -1,7 +1,12 @@
 # ADR 0001 — Bake LUKS keymap into the image initramfs
 
-Status: Accepted
+Status: Superseded by ADR 0002 (2026-05-31)
 Date: 2026-05-27
+
+> NOTE: This fix was incomplete. Baking the keymap *file* into the initramfs
+> fixed the dracut emergency shell path but not the boot cryptsetup prompt.
+> The working fix (plain `fr` + `rd.vconsole.keymap=fr` karg) is in
+> docs/adr/0002-fr-keymap-rd-vconsole-karg.md.
 
 ## Context
 
