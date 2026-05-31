@@ -25,6 +25,19 @@
         "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?\\s+[^\\n]*?/releases/download/(?<currentValue>[^/\\s]+)/",
       ],
     },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^recipes/recipe\\.ya?ml$/",
+      ],
+      "matchStrings": [
+        "image-version:\\s*(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]+)",
+      ],
+      "depNameTemplate": "ghcr.io/ublue-os/bluefin-dx",
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker",
+      "autoReplaceStringTemplate": "image-version: {{{currentValue}}}@{{{newDigest}}}",
+    },
   ],
 
   "packageRules": [
