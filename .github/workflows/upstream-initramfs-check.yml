@@ -39,7 +39,7 @@ jobs:
                     }
                     lsinitrd "${imgs[0]}"
                   ')
-          if echo "$out" | grep -q '/fr\.map\.gz'; then
+          if grep -q '/fr\.map\.gz' <<<"$out"; then
             echo "Upstream now ships the keymap. Consider removing the workaround."
             echo "See docs/adr/0002-fr-keymap-rd-vconsole-karg.md (Removal criteria)."
             exit 1
@@ -64,7 +64,7 @@ jobs:
                     }
                     lsinitrd "${imgs[0]}"
                   ')
-          if ! echo "$out" | grep -q '/fr\.map\.gz'; then
+          if ! grep -q '/fr\.map\.gz' <<<"$out"; then
             echo "Our own image no longer contains the keymap; workaround is broken."
             exit 1
           fi
