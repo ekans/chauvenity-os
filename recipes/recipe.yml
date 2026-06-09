@@ -18,8 +18,8 @@ modules:
   - from-file: erlang-deps.yml
   - from-file: phoenix-deps.yml
 
-  # WORKAROUND: bake the fr keymap into the initramfs + rd.vconsole.keymap=fr
-  # karg (files/system/usr/lib/bootc/kargs.d) so LUKS unlock works on F44+.
+  # rd.vconsole.keymap=fr karg (files/system/usr/lib/bootc/kargs.d) so the LUKS
+  # unlock prompt uses the fr keymap.
   # See docs/adr/0002-fr-keymap-rd-vconsole-karg.md (supersedes 0001).
   - type: files
     files:
@@ -27,7 +27,3 @@ modules:
         destination: /
 
   - type: signing
-
-  # Must remain last: regenerates the initramfs after all other modules have
-  # dropped their files into the image.
-  - type: initramfs

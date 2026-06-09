@@ -1,6 +1,8 @@
 # ADR 0002 — Plain `fr` keymap + `rd.vconsole.keymap` karg for the LUKS boot prompt
 
-Status: Accepted
+Status: Accepted — dracut bake + initramfs regen removed 2026-06-09 (upstream
+bluefin-dx ships the keymap again; see "Removal criteria"). The
+`rd.vconsole.keymap=fr` kargs.d drop-in is retained.
 Date: 2026-05-31
 Supersedes: ADR 0001 (extends its mechanism; 0001 fix was incomplete)
 
@@ -77,3 +79,14 @@ Same upstream trigger as ADR 0001: when bluefin-dx ships keymaps in its
 pre-baked initramfs again, revisit whether the dracut drop-in is still
 needed (CI `upstream-initramfs-check.yml › Job A`). The kargs.d drop-in is
 independent and low-cost; keep it unless it conflicts.
+
+## Resolution (2026-06-09)
+
+The inverted-semantics Job A watcher fired: upstream bluefin-dx ships
+`/fr.map.gz` in its pre-baked initramfs again. Removed the dracut drop-in
+(`99-chauvenity-keymap.conf`) and the `initramfs` regen module — regenerating
+the initramfs without the drop-in would strip the upstream-baked keymap (the
+original F44 failure mode), so both had to go together. We now rely on the
+upstream pre-baked initramfs. The `rd.vconsole.keymap=fr` kargs.d drop-in
+stays. Job A was dropped from the watcher; Job B (positive check that our
+image still contains the keymap) remains as the LUKS-unlock guard.
