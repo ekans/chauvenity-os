@@ -18,8 +18,9 @@ modules:
   - from-file: erlang-deps.yml
   - from-file: phoenix-deps.yml
 
-  # WORKAROUND: bake the fr keymap into the initramfs + rd.vconsole.keymap=fr
-  # karg (files/system/usr/lib/bootc/kargs.d) so LUKS unlock works on F44+.
+  # Select the fr keymap for the LUKS unlock prompt via rd.vconsole.keymap=fr
+  # (files/system/usr/lib/bootc/kargs.d). Upstream bluefin-dx again bakes
+  # fr.map.gz into its initramfs, so the local dracut drop-in was removed.
   # See docs/adr/0002-fr-keymap-rd-vconsole-karg.md (supersedes 0001).
   - type: files
     files:
