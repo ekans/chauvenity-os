@@ -1,6 +1,6 @@
 # ADR 0002 — Plain `fr` keymap + `rd.vconsole.keymap` karg for the LUKS boot prompt
 
-Status: Accepted
+Status: Partially superseded by upstream (2026-06-15) — dracut drop-in removed; kargs.d drop-in retained
 Date: 2026-05-31
 Supersedes: ADR 0001 (extends its mechanism; 0001 fix was incomplete)
 
@@ -77,3 +77,18 @@ Same upstream trigger as ADR 0001: when bluefin-dx ships keymaps in its
 pre-baked initramfs again, revisit whether the dracut drop-in is still
 needed (CI `upstream-initramfs-check.yml › Job A`). The kargs.d drop-in is
 independent and low-cost; keep it unless it conflicts.
+
+## Removal record (2026-06-15)
+
+Job A fired RED: upstream `bluefin-dx` pre-baked initramfs again ships a real
+`usr/lib/kbd/keymaps/xkb/fr.map.gz` (4077 bytes, valid keymap data; verified
+by unpacking the zstd cpio of the pinned base digest `a81bde00`). A bare
+`lsinitrd -f` reports the file as 0 bytes — a cpio hardlink artifact, not
+emptiness.
+
+The dracut drop-in
+`/usr/lib/dracut/dracut.conf.d/99-chauvenity-keymap.conf` was therefore
+removed. The kargs.d drop-in `rd.vconsole.keymap=fr` is retained: it selects
+the keymap and is independent of who supplies `fr.map.gz`. Job B still
+guards that our published image's initramfs contains the keymap (now via
+upstream).
