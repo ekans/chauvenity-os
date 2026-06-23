@@ -1,0 +1,45 @@
+# Positive check that our published image's initramfs ships the fr keymap
+# needed to unlock LUKS at the boot cryptsetup prompt.
+#
+#   GREEN = our image contains fr.map.gz as expected.
+#   RED   = the keymap is missing; the image will not unlock LUKS.
+#
+# fr.map.gz is currently supplied by upstream bluefin-dx's pre-baked initramfs
+# (the local dracut drop-in was removed in #44). This check is independent of
+# who supplies the file: if upstream regresses and drops it, this goes red.
+#
+# See docs/adr/0002-fr-keymap-rd-vconsole-karg.md.
+
+name: initramfs-keymap-check
+
+on:
+  schedule:
+    # Monday 07:30 UTC, offset from the daily 06:00 UTC build.yml to avoid
+    # racing the in-progress image push.
+    - cron: "30 7 * * 1"
+  workflow_dispatch:
+
+jobs:
+  own-image-positive-check:
+    name: own-image keymap check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check that chauvenity-os initramfs contains the fr keymap
+        run: |
+          set -eo pipefail
+          out=$(podman run --rm --pull=always \
+                  ghcr.io/ekans/chauvenity-os:latest \
+                  sh -c '
+                    set -e
+                    shopt -s nullglob
+                    imgs=(/usr/lib/modules/*/initramfs.img)
+                    [ ${#imgs[@]} -eq 1 ] || {
+                      echo "expected 1 initramfs, got ${#imgs[@]}" >&2; exit 2;
+                    }
+                    lsinitrd "${imgs[0]}"
+                  ')
+          if ! grep -q '/fr\.map\.gz' <<<"$out"; then
+            echo "Our own image no longer contains the keymap; workaround is broken."
+            exit 1
+          fi
+          echo "OK: chauvenity-os initramfs contains fr.map.gz."

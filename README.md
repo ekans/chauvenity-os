@@ -89,16 +89,17 @@ cosign verify --key cosign.pub ghcr.io/ekans/chauvenity-os
 
 - **LUKS keymap forced for boot prompt (F44+).** F44 dracut 108 silently
   drops keymaps from the upstream bluefin-dx pre-baked initramfs, which
-  broke AZERTY LUKS unlock. chauvenity-os force-includes `fr.map.gz` via a
-  dracut drop-in and selects it for the boot prompt with the karg
-  `rd.vconsole.keymap=fr` (bootc `kargs.d` drop-in); the initramfs is
-  regenerated at image build time. The desktop session / TTY keymap is
-  unaffected (still driven by `/etc/vconsole.conf`, e.g. `fr-afnor`).
+  broke AZERTY LUKS unlock. chauvenity-os selects the `fr` keymap for the
+  boot prompt with the karg `rd.vconsole.keymap=fr` (bootc `kargs.d`
+  drop-in). `fr.map.gz` itself is supplied by upstream bluefin-dx's
+  pre-baked initramfs again, so the local dracut drop-in was removed. The
+  desktop session / TTY keymap is unaffected (still driven by
+  `/etc/vconsole.conf`, e.g. `fr-afnor`).
   Tracked by [`docs/adr/0002-fr-keymap-rd-vconsole-karg.md`](./docs/adr/0002-fr-keymap-rd-vconsole-karg.md)
   (supersedes 0001)
-  and the [`upstream-initramfs-check`](./.github/workflows/upstream-initramfs-check.yml)
-  workflow (inverted-semantics watcher: red means upstream fixed it and the
-  workaround can be removed).
+  and the [`initramfs-keymap-check`](./.github/workflows/initramfs-keymap-check.yml)
+  workflow (positive check: red means our image's initramfs lost the
+  keymap).
 
 ## Dependency updates
 
