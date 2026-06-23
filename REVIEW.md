@@ -8,7 +8,7 @@
 2. **Sync docs with the change.** For every changed recipe or workaround file, confirm the matching docs were updated in the same diff:
    - `CLAUDE.md` — module lists, project structure, recipe composition.
    - Inline comments in touched `files/system/**` drop-ins (`.toml`, `.conf`).
-   - Watcher comments in `.github/workflows/upstream-initramfs-check.yml`.
+   - Comments in `.github/workflows/initramfs-keymap-check.yml`.
    - ADR cross-references (`Supersedes`, `Superseded by`, "Removal criteria").
    Halt if a behavior changed but any of the above still describes the old behavior.
 
@@ -18,7 +18,7 @@
 
 5. **Challenge new additions (KISS/YAGNI).** This is a personal, single-user image. Every new package, module, repo, or `files/` entry must be used now, not added speculatively. Do not introduce `files/` or `modules/` assets a module does not consume. Halt if an addition is unjustified.
 
-6. **Verify the `initramfs` ordering invariant.** If `recipes/recipe.yml` modules were added or reordered, `initramfs` must remain the last module, after the `files` module that drops the dracut keymap config. Misordering builds successfully but ships a broken initramfs; CI Job B catches it only post-merge. Halt if `initramfs` is not last.
+6. **Verify the `initramfs` ordering invariant.** If `recipes/recipe.yml` modules were added or reordered, `initramfs` must remain the last module, after the `files` module that drops the dracut keymap config. Misordering builds successfully but ships a broken initramfs; the `initramfs-keymap-check` workflow catches it only post-merge. Halt if `initramfs` is not last.
 
 ## Output
 
@@ -40,6 +40,6 @@ If none: write "None."
 ## Rules
 
 - Do not invent checks not listed above.
-- Do not restate what the BlueBuild image build, `upstream-initramfs-check.yml`, or Renovate already enforce.
+- Do not restate what the BlueBuild image build, `initramfs-keymap-check.yml`, or Renovate already enforce.
 - Do not modify code. This is review only.
 - If a step cannot be executed (missing tool, no network, etc.), report it under "Blocking issues" and continue with the remaining steps.
