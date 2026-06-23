@@ -1,12 +1,17 @@
 # Positive check that our published image's initramfs ships the fr keymap
 # needed to unlock LUKS at the boot cryptsetup prompt.
 #
-#   GREEN = our image contains fr.map.gz as expected.
-#   RED   = the keymap is missing; the image will not unlock LUKS.
+#   GREEN = our image ships fr.map.gz AND the rd.vconsole.keymap=fr karg.
+#   RED   = a piece is missing; the image will not unlock LUKS at boot.
 #
 # fr.map.gz is currently supplied by upstream bluefin-dx's pre-baked initramfs
 # (the local dracut drop-in was removed in #44). This check is independent of
 # who supplies the file: if upstream regresses and drops it, this goes red.
+#
+# Detection is reactive by design: a regression is caught after a broken image
+# publishes, not before. Acceptable for a single-user daily-driver image (the
+# failure surfaces at first boot anyway). Revisit a pre-publish gate if this
+# image is ever used on machines you don't boot yourself.
 #
 # See docs/adr/0002-fr-keymap-rd-vconsole-karg.md.
 
@@ -39,7 +44,19 @@ jobs:
                     lsinitrd "${imgs[0]}"
                   ')
           if ! grep -q '/fr\.map\.gz' <<<"$out"; then
-            echo "Our own image no longer contains the keymap; workaround is broken."
+            echo "Our own image no longer contains the keymap; LUKS unlock will break."
             exit 1
           fi
           echo "OK: chauvenity-os initramfs contains fr.map.gz."
+      - name: Check that the rd.vconsole.keymap=fr karg is present
+        run: |
+          set -eo pipefail
+          # The keymap file is useless if nothing selects it at the prompt.
+          # Drop the kargs.d TOML and the initramfs check above stays green
+          # while every boot silently falls back to QWERTY and fails to unlock.
+          podman run --rm --pull=always \
+            ghcr.io/ekans/chauvenity-os:latest \
+            grep -q 'rd.vconsole.keymap=fr' \
+              /usr/lib/bootc/kargs.d/10-chauvenity-keymap.toml \
+            || { echo "karg rd.vconsole.keymap=fr missing; LUKS prompt falls back to QWERTY."; exit 1; }
+          echo "OK: chauvenity-os ships rd.vconsole.keymap=fr."
