@@ -1,4 +1,4 @@
-# ADR 0002 — Pin base image by digest, drive rebuilds via Renovate
+# ADR 0003 — Pin base image by digest, drive rebuilds via Renovate
 
 Status: Accepted
 Date: 2026-05-31
