@@ -18,7 +18,7 @@
 
 5. **Challenge new additions (KISS/YAGNI).** This is a personal, single-user image. Every new package, module, repo, or `files/` entry must be used now, not added speculatively. Do not introduce `files/` or `modules/` assets a module does not consume. Halt if an addition is unjustified.
 
-6. **Verify the `initramfs` ordering invariant.** If `recipes/recipe.yml` modules were added or reordered, `initramfs` must remain the last module, after the `files` module that drops the dracut keymap config. Misordering builds successfully but ships a broken initramfs; the `initramfs-keymap-check` workflow catches it only post-merge. Halt if `initramfs` is not last.
+6. **Verify the `initramfs` ordering invariant.** If `recipes/recipe.yml` modules were added or reordered, `initramfs` must remain the last module, after the `files` module that drops the keymap `kargs.d` drop-in. Misordering builds successfully but ships a broken initramfs; the `initramfs-keymap-check` workflow catches it only post-merge. Halt if `initramfs` is not last.
 
 ## Output
 
