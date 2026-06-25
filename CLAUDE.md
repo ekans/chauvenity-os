@@ -36,7 +36,10 @@ Top-level `recipes/recipe.yml` composes:
 - `from-file: tools.yml` — see below
 - `from-file: erlang-deps.yml` — Erlang/OTP build deps
 - `from-file: phoenix-deps.yml` — Phoenix / Brod build deps
+- `files` — copies `files/system/` into the image (the bootc keymap karg drop-in)
 - `signing` — cosign image signing
+- `initramfs` — regenerates the initramfs; must remain the last module so it
+  runs after the `files` module drops the keymap karg
 
 `tools.yml` uses:
 - `dnf` — COPR repos (mise, ghostty, waydroid), `.repo` files (Brave, claude-desktop)
