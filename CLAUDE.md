@@ -20,11 +20,14 @@ The image is built automatically via GitHub Actions. There is no local build com
 - `recipes/tools.yml` — user-facing tools (dnf repos+packages, bling)
 - `recipes/erlang-deps.yml` — RPM build deps for compiling Erlang via mise
 - `recipes/phoenix-deps.yml` — Phoenix / Brod build deps
+- `files/system/` — assets copied into the image by the `files` module (e.g.
+  the bootc keymap karg drop-in under `usr/lib/bootc/kargs.d/`)
+- `docs/adr/` — architecture decision records
 - `cosign.pub` / `cosign.key` — Sigstore signing keys (private key is encrypted)
 
-There are currently no `files/` or `modules/` directories; add them only when a
-module needs them (e.g. `files/dnf/*.repo` for the dnf module, `modules/` for
-custom local modules).
+There is no `modules/` directory yet; add one only when a custom local module
+needs it. Add per-module assets under `files/<module>/` as new modules require
+them (e.g. `files/dnf/*.repo` for the dnf module).
 
 ## Recipe Configuration
 
