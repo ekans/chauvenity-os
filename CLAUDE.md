@@ -10,7 +10,13 @@ chauvenity-os is a custom Fedora Atomic OS image built using [BlueBuild](https:/
 
 The image is built automatically via GitHub Actions. There is no local build command — all builds happen in CI.
 
-- **Automatic builds**: daily at 06:00 UTC and on every push (except markdown-only changes)
+Builds are event-driven (no scheduled cron). They run on:
+
+- **Push / PR**: every push (except markdown-only changes) and every pull request
+- **Base-image updates**: the base is pinned by digest in `recipes/recipe.yml`;
+  when upstream `:stable` moves, Renovate opens a digest-bump PR that auto-merges,
+  and the resulting push to `main` triggers a build (see
+  `docs/adr/0003-pin-base-digest-renovate.md`)
 - **Manual builds**: trigger via GitHub Actions workflow dispatch
 - **CI workflow**: `.github/workflows/build.yml` uses `blue-build/github-action@v1.11`
 
