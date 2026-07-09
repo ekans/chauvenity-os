@@ -15,7 +15,6 @@ Built on [bluefin-dx](https://github.com/ublue-os/bluefin) (stable), the develop
 ### Development Tools
 - **mise** (COPR `jdxcode/mise`) — polyglot dev tool version manager
 - **ghostty** (COPR `scottames/ghostty`) — GPU-accelerated terminal
-- **claude-desktop** — Anthropic Claude desktop client
 - **Docker Sandboxes (sbx)** — installed from upstream GitHub release
 - **1password** (via `bling` module)
 - **waydroid** (COPR `aleasto/waydroid`) — Android container runtime
