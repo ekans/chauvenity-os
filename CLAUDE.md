@@ -48,7 +48,7 @@ Top-level `recipes/recipe.yml` composes:
   runs after the `files` module drops the keymap karg
 
 `tools.yml` uses:
-- `dnf` — COPR repos (mise, ghostty, waydroid), `.repo` files (Brave, claude-desktop)
+- `dnf` — COPR repos (mise, ghostty, waydroid), `.repo` files (Brave)
   and packages, including the sbx RPM installed directly from a GitHub release URL
 - `bling` — 1password
 
