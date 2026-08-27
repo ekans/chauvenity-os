@@ -13,6 +13,14 @@ modules:
     install:
       packages:
         - brave-browser
+        # Microsoft 365 mail + calendar with server-side RSVP. Layered as RPMs,
+        # not the Flathub Flatpak: the sandboxed build cannot reach the host
+        # keyring, so OAuth2 tokens fail ("OAuth2 Secret Not Found").
+        # https://github.com/flathub/org.gnome.Evolution/issues/222
+        # evolution-ews adds the "Microsoft 365" (Graph) account type, which
+        # survives the Exchange Online EWS shutdown (1 Oct 2026 → 1 Apr 2027).
+        - evolution
+        - evolution-ews
         - ghostty
         - mise
         - waydroid
