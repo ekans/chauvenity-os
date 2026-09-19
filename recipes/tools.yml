@@ -30,6 +30,9 @@ modules:
         # renovate: datasource=github-releases depName=docker/sbx-releases
         - https://github.com/docker/sbx-releases/releases/download/v0.30.0/DockerSandboxes-linux-amd64-rockylinux8.rpm
 
-  - type: bling
-    install:
-      - 1password
+  # 1Password, installed by a local copy of the bling module's installer.
+  # Upstream bling is broken: it installs a .desktop file the RPM no longer
+  # ships. See blue-build/modules#581 and files/scripts/install-1password.sh.
+  - type: script
+    scripts:
+      - install-1password.sh

@@ -50,7 +50,9 @@ Top-level `recipes/recipe.yml` composes:
 `tools.yml` uses:
 - `dnf` — COPR repos (mise, ghostty, waydroid), `.repo` files (Brave)
   and packages, including the sbx RPM installed directly from a GitHub release URL
-- `bling` — 1password
+- `script` — `files/scripts/install-1password.sh`, a local copy of the bling
+  module's 1Password installer (upstream bling is broken, see
+  blue-build/modules#581)
 
 ## Making Changes
 
