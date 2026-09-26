@@ -5,7 +5,6 @@ modules:
       packages:
         - autoconf
         - automake
-        - erlang-odbc.x86_64
         - fop
         - java-25-openjdk-devel.x86_64
         - libiodbc
