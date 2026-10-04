@@ -1,8 +1,9 @@
-# niri desktop session, offered alongside GNOME in GDM.
+# niri + Quickshell desktop session, offered alongside GNOME in GDM.
 #
-# Every package here ships in the Fedora 44 repositories — niri and
-# xwayland-satellite are both in Fedora proper, so this file adds no COPR.
-# Keep it that way.
+# Every package here ships in the Fedora 44 repositories — niri, quickshell and
+# xwayland-satellite are all in Fedora proper, so this file adds no COPR. Keep
+# it that way: the alternatives (DankMaterialShell, Noctalia) would each pull in
+# a COPR, and one of them would replace Fedora's quickshell image-wide.
 modules:
   - type: dnf
     install:
@@ -20,6 +21,10 @@ modules:
         # Xwayland for the niri session. niri already hard-Requires it
         # (>= 0.7) and spawns it itself; listed so the dependency is visible.
         - xwayland-satellite
+        # QML runtime the bar in files/system/etc/xdg/quickshell/ is written
+        # against. Fedora's build, not the danklinux COPR's, so it cannot
+        # displace anything else in the image.
+        - quickshell
 
         # Pieces GNOME provides from inside gnome-shell and niri does not.
         # fuzzel and swaylock are only niri Recommends; the rest are not niri
@@ -47,3 +52,12 @@ modules:
         - xdg-desktop-portal-gtk
         # Secret Service backend; also the Secret portal per niri-portals.conf.
         - gnome-keyring
+
+  # Bring the base's Qt up to the release quickshell was built against,
+  # otherwise `qs` dies on an undefined symbol and there is no bar. This is a
+  # script and not a dnf `install:` entry because dnf5's install is
+  # "install if absent" and will not upgrade a package the base already has;
+  # only `dnf upgrade` does. See the script for the whole story.
+  - type: script
+    scripts:
+      - upgrade-qt-for-quickshell.sh

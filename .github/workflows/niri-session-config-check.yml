@@ -1,11 +1,12 @@
 # Checks the niri session's shipped configuration without building the image.
 #
-#   GREEN = niri accepts the config the image ships.
-#   RED   = a change to the session would ship a config niri cannot parse:
-#           niri would start on upstream's default config instead, without
+#   GREEN = niri accepts config.kdl, and every shipped .qml type-checks
+#           against the Quickshell the image actually installs.
+#   RED   = a change to the session would ship broken. For config.kdl that
+#           means niri starts on upstream's default config instead, without
 #           your binds and with a terminal bind (alacritty) that does nothing.
 #
-# Cheap enough to run on every PR that touches the session: one Fedora 44
+# Cheap enough to run on every PR that touches the config: one Fedora 44
 # container, no image build. It cannot tell you the session *looks* right, or
 # that the units start in the right order — only booting the image does that.
 
@@ -15,29 +16,75 @@ on:
   push:
     branches: [main]
     paths: &session-paths
+      - "files/system/etc/xdg/quickshell/**"
       - "files/system/etc/niri/**"
       - "files/system/usr/lib/systemd/user/**"
+      # recipes/** matters for the runtime job below: a Renovate base-digest
+      # bump changes recipe.yml, and that is exactly when the base's library
+      # versions move under us.
+      - "recipes/**"
       - ".github/workflows/niri-session-config-check.yml"
+      - ".github/scripts/base-image-runtime-check.sh"
   pull_request:
     paths: *session-paths
   workflow_dispatch:
 
 jobs:
   check:
-    name: niri validate
+    name: niri validate + qmllint
     runs-on: ubuntu-latest
     permissions:
       contents: read
     container:
-      # Must track the Fedora release the base image is built on, so the niri
-      # here is the one the image ships.
+      # Must track the Fedora release the base image is built on, so the
+      # niri and quickshell here are the ones the image ships.
       image: registry.fedoraproject.org/fedora:44
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install niri
-        run: dnf install -y --setopt=install_weak_deps=False niri
+      # qt6-qtdeclarative-devel is only here for qmllint.
+      - name: Install niri, quickshell and qmllint
+        run: |
+          dnf install -y --setopt=install_weak_deps=False \
+            niri quickshell qt6-qtdeclarative-devel
 
       - name: Validate the niri config
         # niri validate exits 1 on a config it cannot parse.
         run: niri validate -c files/system/etc/niri/config.kdl
+
+      - name: Type-check every shipped QML file
+        working-directory: files/system/etc/xdg/quickshell/chauvenity
+        run: |
+          status=0
+          for f in *.qml; do
+            # "PanelWindow is not creatable" is a known qmllint false positive
+            # for Quickshell's window types; anything else is real.
+            out=$(qmllint-qt6 -I /usr/lib64/qt6/qml -I . "$f" 2>&1 \
+                  | grep -E '^(Error|Warning)' \
+                  | grep -v 'PanelWindow is not creatable') || true
+            if [ -n "$out" ]; then
+              echo "::error file=files/system/etc/xdg/quickshell/chauvenity/$f::$out"
+              status=1
+            else
+              echo "ok  $f"
+            fi
+          done
+          exit $status
+
+  runs-on-the-pinned-base:
+    name: session runs on the pinned base image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      # bluefin-dx is large and the runner's default free space is not.
+      - name: Make room for the base image
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                      /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
+          df -h /
+
+      - name: Run the session's binaries on the pinned base
+        run: .github/scripts/base-image-runtime-check.sh

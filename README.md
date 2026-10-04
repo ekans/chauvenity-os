@@ -40,18 +40,23 @@ the default — GDM remembers the last session per user in AccountsService, and
 nothing here touches a GNOME package, a GNOME default or a GDM setting.
 
 **Niri** is a second session: the [niri](https://github.com/YaLTeR/niri)
-scrolling-tiling Wayland compositor. Its point is live editing — niri re-reads
-its config the moment the file is saved, so the desktop changes without logging
-out. Everything it needs comes from the Fedora repositories (no COPR): `niri`,
+scrolling-tiling Wayland compositor with a
+[Quickshell](https://quickshell.org/) bar. Its point is live editing — niri
+re-reads its config and Quickshell reloads its QML the moment either file is
+saved, so the desktop changes without logging out. Everything it needs comes
+from the Fedora repositories (no COPR): `niri`, `quickshell`,
 `xwayland-satellite`, plus `fuzzel` (launcher), `swayidle`, `swaylock`, `mako`
 (notifications), `mate-polkit`, `wireplumber` and `brightnessctl`. Screenshare
 goes through `xdg-desktop-portal-gnome`, the same portal GNOME uses, because
-niri implements the `org.gnome.Mutter.ScreenCast` interface. There is no panel
-yet; `Mod+Shift+/` lists the main keybinds.
+niri implements the `org.gnome.Mutter.ScreenCast` interface. `Mod+Shift+/`
+lists the main keybinds.
+
+The bar shows this output's workspaces, the focused window's title, volume,
+battery and the clock.
 
 #### Taking it over
 
-The system default ships read-only in `/etc`. Override it per-user by including
+System defaults ship read-only in `/etc`. Override niri's per-user by including
 it from your own config, then edit live; later settings win, and you keep
 getting changes made to `/etc/niri/config.kdl`:
 
@@ -63,6 +68,27 @@ include "/etc/niri/config.kdl"
 layout { gaps 4; }
 ```
 
+The bar is taken over by copying its directory:
+
+```bash
+mkdir -p ~/.config/quickshell
+cp -r /etc/xdg/quickshell/chauvenity ~/.config/quickshell/
+systemctl --user restart chauvenity-quickshell
+```
+
+Each line matters. Without the `mkdir`, `cp -r` creates
+`~/.config/quickshell` *as* the copy, so the files land one directory too high
+and are silently ignored. And copy the **directory**, not just `shell.qml`:
+Quickshell resolves `-c chauvenity` to the first `chauvenity/` it finds across
+the XDG config dirs, so a lone `shell.qml` in `~/.config` shadows the shipped
+directory and the bar then fails to resolve its own components.
+
+The one-time `restart` is because the running bar is still watching
+`/etc/xdg/quickshell/chauvenity`; it picks up the new location on restart and
+watches your copy live from then on. niri needs no equivalent — it switches to
+`~/.config/niri/config.kdl` on the next save. Unlike the niri include, a copied
+bar no longer receives changes made to the image's copy.
+
 > [!WARNING]
 > Run `niri validate` before logging out after editing `~/.config/niri/config.kdl`.
 > If that file exists but fails to parse, niri does **not** fall back to
@@ -73,11 +99,11 @@ layout { gaps 4; }
 #### How the session starts
 
 The compositor comes from the `niri` RPM's own
-`/usr/share/wayland-sessions/niri.desktop`. Everything else — idle and lock
-handling, the polkit agent, notifications (expiring after 10 s), the keyring
-components and the SSH agent (`gcr-ssh-agent`) — runs as systemd user units
-pulled in by a drop-in on `niri.service`, so they are niri-only and survive a
-broken `config.kdl`. The reasoning is in
+`/usr/share/wayland-sessions/niri.desktop`. Everything else — the bar, idle
+and lock handling, the polkit agent, notifications (expiring after 10 s), the
+keyring components and the SSH agent (`gcr-ssh-agent`) — runs as systemd user
+units pulled in by a drop-in on `niri.service`, so they are niri-only and
+survive a broken `config.kdl`. The reasoning is in
 [`niri.service.d/10-chauvenity-session.conf`](./files/system/usr/lib/systemd/user/niri.service.d/10-chauvenity-session.conf).
 To drop one:
 
@@ -87,7 +113,8 @@ systemctl --user mask chauvenity-polkit-agent.service
 
 The
 [`niri-session-config-check`](./.github/workflows/niri-session-config-check.yml)
-workflow runs `niri validate` on every PR that touches the session.
+workflow runs `niri validate` and `qmllint` on every PR that touches the
+session.
 
 ### Dotfiles
 Managed via [chezmoi](https://www.chezmoi.io/) from [ekans/dotfiles](https://github.com/ekans/dotfiles).
