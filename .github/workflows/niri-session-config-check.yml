@@ -1,7 +1,8 @@
 # Checks the niri session's shipped configuration without building the image.
 #
-#   GREEN = niri accepts config.kdl, and every shipped .qml type-checks
-#           against the Quickshell the image actually installs.
+#   GREEN = niri accepts config.kdl, the pure usage logic passes its tests, and
+#           every shipped .qml type-checks against the Quickshell the image
+#           actually installs.
 #   RED   = a change to the session would ship broken. For config.kdl that
 #           means niri starts on upstream's default config instead, without
 #           your binds and with a terminal bind (alacritty) that does nothing.
@@ -31,26 +32,31 @@ on:
 
 jobs:
   check:
-    name: niri validate + qmllint
+    name: niri validate + usage tests + qmllint
     runs-on: ubuntu-latest
     permissions:
       contents: read
     container:
       # Must track the Fedora release the base image is built on, so the
-      # niri and quickshell here are the ones the image ships.
+      # niri, quickshell and gjs here are the ones the image ships.
       image: registry.fedoraproject.org/fedora:44
     steps:
       - uses: actions/checkout@v7
 
-      # qt6-qtdeclarative-devel is only here for qmllint.
-      - name: Install niri, quickshell and qmllint
+      # qt6-qtdeclarative-devel is only here for qmllint, gjs for the usage
+      # unit tests.
+      - name: Install niri, quickshell, qmllint and gjs
         run: |
           dnf install -y --setopt=install_weak_deps=False \
-            niri quickshell qt6-qtdeclarative-devel
+            niri quickshell qt6-qtdeclarative-devel gjs
 
       - name: Validate the niri config
         # niri validate exits 1 on a config it cannot parse.
         run: niri validate -c files/system/etc/niri/config.kdl
+
+      - name: Run the Claude usage unit tests
+        working-directory: files/system/etc/xdg/quickshell/chauvenity
+        run: gjs -m test-usage.mjs
 
       - name: Type-check every shipped QML file
         working-directory: files/system/etc/xdg/quickshell/chauvenity

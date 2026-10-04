@@ -52,7 +52,10 @@ niri implements the `org.gnome.Mutter.ScreenCast` interface. `Mod+Shift+/`
 lists the main keybinds.
 
 The bar shows this output's workspaces, the focused window's title, volume,
-battery and the clock.
+battery and the clock, plus a **Claude usage** chip ported from the
+`claude-usage@ducatore` GNOME extension (the 5-hour session window, the weekly
+cap and the Fable carve-out). The Claude chip hides itself when the machine has
+no Claude credentials.
 
 #### Taking it over
 
@@ -89,6 +92,13 @@ watches your copy live from then on. niri needs no equivalent — it switches to
 `~/.config/niri/config.kdl` on the next save. Unlike the niri include, a copied
 bar no longer receives changes made to the image's copy.
 
+The directory also carries `usage.mjs` and its tests, which still run from
+wherever you copy them:
+
+```bash
+cd ~/.config/quickshell/chauvenity && gjs -m test-usage.mjs
+```
+
 > [!WARNING]
 > Run `niri validate` before logging out after editing `~/.config/niri/config.kdl`.
 > If that file exists but fails to parse, niri does **not** fall back to
@@ -111,10 +121,11 @@ To drop one:
 systemctl --user mask chauvenity-polkit-agent.service
 ```
 
-The
+The bar is split across `shell.qml`, `ClaudeUsage.qml` /
+`ClaudeUsageService.qml` / `Gauge.qml` and the pure `usage.mjs`. The
 [`niri-session-config-check`](./.github/workflows/niri-session-config-check.yml)
-workflow runs `niri validate` and `qmllint` on every PR that touches the
-session.
+workflow runs `niri validate`, the unit tests and `qmllint` on every PR that
+touches the session.
 
 ### Dotfiles
 Managed via [chezmoi](https://www.chezmoi.io/) from [ekans/dotfiles](https://github.com/ekans/dotfiles).

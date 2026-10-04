@@ -20,13 +20,20 @@ pragma ComponentBehavior: Bound
 // *as* the copy and the files land one directory too high, where nothing reads
 // them. The directory and not just this file, because Quickshell resolves
 // `-c chauvenity` to the first `chauvenity/` it finds across the XDG config
-// dirs — a lone shell.qml there shadows the whole shipped directory, and any
-// file beside it that it uses then fails to resolve. And the restart once,
-// because the bar that is already running is still watching /etc.
+// dirs — a lone shell.qml there shadows the whole shipped directory and then
+// fails to resolve ClaudeUsage and the rest. And the restart once, because the
+// bar that is already running is still watching /etc.
 //
 // Deliberately a bar and nothing else: notifications come from mako and the
 // polkit prompt from mate-polkit, both their own systemd user units, so there
 // is no second implementation of either here.
+//
+// The bar's larger pieces are their own files in this directory, so each can be
+// read and edited on its own:
+//
+//   ClaudeUsage.qml Claude subscription usage, with ClaudeUsageService.qml,
+//                   Gauge.qml and usage.mjs
+//   usage.mjs       the pure logic, tested by test-usage.mjs (`gjs -m`)
 
 import QtQuick
 import Quickshell
@@ -43,6 +50,11 @@ ShellRoot {
     readonly property color dimColor: "#77767b"
     readonly property color accentColor: "#62a0ea"
     readonly property int barHeight: 32
+
+    // One poll for the whole session, however many monitors the bar is on.
+    ClaudeUsageService {
+        id: claudeUsage
+    }
 
     // --- niri state ---------------------------------------------------------
     // Fed by a single `niri msg --json event-stream`, which emits one JSON
@@ -246,12 +258,17 @@ ShellRoot {
                 font.pixelSize: 12
             }
 
-            // Right: volume, battery, clock.
+            // Right: Claude usage, volume, battery, clock.
             Row {
                 anchors.right: parent.right
                 anchors.rightMargin: 10
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 12
+
+                ClaudeUsage {
+                    anchors.verticalCenter: parent.verticalCenter
+                    service: claudeUsage
+                }
 
                 Text {
                     id: volumeText
