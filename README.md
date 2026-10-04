@@ -33,6 +33,62 @@ Built on [bluefin-dx](https://github.com/ublue-os/bluefin) (stable), the develop
 - inotify-tools (Phoenix live reload)
 - cmake (Brod / Kafka build)
 
+### Desktop Sessions
+
+GDM offers two sessions. **GNOME** (from bluefin-dx) is unchanged and remains
+the default — GDM remembers the last session per user in AccountsService, and
+nothing here touches a GNOME package, a GNOME default or a GDM setting.
+
+**Niri** is a second session: the [niri](https://github.com/YaLTeR/niri)
+scrolling-tiling Wayland compositor. Its point is live editing — niri re-reads
+its config the moment the file is saved, so the desktop changes without logging
+out. Everything it needs comes from the Fedora repositories (no COPR): `niri`,
+`xwayland-satellite`, plus `fuzzel` (launcher), `swaybg`, `swayidle`,
+`swaylock`, `mako` (notifications), `mate-polkit`, `wireplumber` and
+`brightnessctl`. Screenshare goes through `xdg-desktop-portal-gnome`, the same
+portal GNOME uses, because niri implements the `org.gnome.Mutter.ScreenCast`
+interfaces. There is no panel yet; `Mod+Shift+/` lists the keybinds.
+
+#### Taking it over
+
+The system default ships read-only in `/etc`; a user overrides it per-user and
+edits it live:
+
+```bash
+mkdir -p ~/.config/niri && cp /etc/niri/config.kdl ~/.config/niri/
+```
+
+> [!WARNING]
+> Run `niri validate` before logging out after editing `~/.config/niri/config.kdl`.
+> If that file exists but fails to parse, niri does **not** fall back to
+> `/etc/niri/config.kdl` — it starts on its own built-in defaults, so your
+> keybinds are gone.
+
+#### How the session starts
+
+The compositor comes from the `niri` RPM's own
+`/usr/share/wayland-sessions/niri.desktop`. Everything else — idle and lock
+handling, wallpaper, the polkit agent, notifications and the keyring
+components — runs as systemd user units pulled in by a drop-in on
+`niri.service`
+([`files/system/usr/lib/systemd/user/`](./files/system/usr/lib/systemd/user/)).
+
+That is deliberate on two counts. `niri.service` has no `[Install]` section and
+is started only by `niri-session`, so these units are niri-only by
+construction and cannot run inside GNOME — whereas enabling `mako.service` the
+ordinary way *would* start it under GNOME, because its own `[Install]` is
+`WantedBy=graphical-session.target`. And because they do not depend on
+`config.kdl` parsing, a typo in your config can no longer take the lock screen
+with it. To drop one:
+
+```bash
+systemctl --user mask chauvenity-swaybg.service
+```
+
+The
+[`niri-session-config-check`](./.github/workflows/niri-session-config-check.yml)
+workflow runs `niri validate` on every PR that touches the session.
+
 ### Dotfiles
 Managed via [chezmoi](https://www.chezmoi.io/) from [ekans/dotfiles](https://github.com/ekans/dotfiles).
 

@@ -1,0 +1,21 @@
+# Polkit authentication agent. GNOME's lives inside gnome-shell, so without
+# one of these anything that calls PolicyKit under niri — bootc, systemctl on a
+# system unit — fails with no prompt at all.
+#
+# mate-polkit is used for its agent binary only; its own autostart entry is
+# OnlyShowIn=MATE and never fires here.
+[Unit]
+Description=Polkit authentication agent (niri session)
+# BindsTo rather than PartOf: PartOf only propagates an explicit `systemctl
+# stop niri.service`. When niri exits on its own the units would otherwise
+# outlive it — the polkit agent restart-looping until it fails, the keyring
+# oneshot sitting active forever.
+BindsTo=niri.service
+After=niri.service graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/libexec/polkit-mate-authentication-agent-1
+Restart=on-failure
+RestartSec=1
+Slice=session.slice
