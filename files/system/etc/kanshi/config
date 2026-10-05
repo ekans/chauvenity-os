@@ -1,0 +1,28 @@
+# chauvenity-os display profiles for the niri session: the laptop panel is off
+# while any external monitor is connected, and back on once the last one is
+# unplugged. kanshi activates the first profile, in file order, whose outputs
+# are exactly the connected ones.
+#
+# Used only when ~/.config/kanshi/config does not exist; see
+# /usr/lib/systemd/user/kanshi.service.d/10-chauvenity.conf. That file, if you
+# write one, replaces this one rather than adding to it.
+#
+# eDP-1 is this laptop's panel connector; `niri msg outputs` lists the names.
+
+profile laptop {
+	output eDP-1 enable
+}
+
+# `output *` makes this profile need at least one external monitor. Without it,
+# `...output` alone also matches zero, so on unplugging the last monitor kanshi
+# would keep this profile — it never re-applies a profile that still matches —
+# and leave the panel, now the only output, switched off.
+#
+# The second wildcard has to be spelled "* * *" because kanshi rejects the same
+# criteria twice in one profile. It is a glob over "make model serial", which
+# always has three fields, so it matches any monitor just as `*` does.
+profile docked {
+	output eDP-1 disable
+	output * enable
+	...output "* * *" enable
+}

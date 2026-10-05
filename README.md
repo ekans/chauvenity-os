@@ -44,7 +44,8 @@ scrolling-tiling Wayland compositor. Its point is live editing — niri re-reads
 its config the moment the file is saved, so the desktop changes without logging
 out. Everything it needs comes from the Fedora repositories (no COPR): `niri`,
 `xwayland-satellite`, plus `fuzzel` (launcher), `swayidle`, `swaylock`, `mako`
-(notifications), `mate-polkit`, `wireplumber` and `brightnessctl`. Screenshare
+(notifications), `mate-polkit`, `wireplumber`, `brightnessctl` and `kanshi`
+(display profiles). Screenshare
 goes through `xdg-desktop-portal-gnome`, the same portal GNOME uses, because
 niri implements the `org.gnome.Mutter.ScreenCast` interface. There is no panel
 yet; `Mod+Shift+/` lists the main keybinds.
@@ -74,8 +75,9 @@ layout { gaps 4; }
 
 The compositor comes from the `niri` RPM's own
 `/usr/share/wayland-sessions/niri.desktop`. Everything else — idle and lock
-handling, the polkit agent, notifications (expiring after 10 s), the keyring
-components and the SSH agent (`gcr-ssh-agent`) — runs as systemd user units
+handling, the polkit agent, notifications (expiring after 10 s), display
+profiles (`kanshi`), the keyring components and the SSH agent (`gcr-ssh-agent`)
+— runs as systemd user units
 pulled in by a drop-in on `niri.service`, so they are niri-only and survive a
 broken `config.kdl`. The reasoning is in
 [`niri.service.d/10-chauvenity-session.conf`](./files/system/usr/lib/systemd/user/niri.service.d/10-chauvenity-session.conf).
@@ -84,6 +86,20 @@ To drop one:
 ```bash
 systemctl --user mask chauvenity-polkit-agent.service
 ```
+
+#### External monitors
+
+While any external monitor is connected, the laptop panel (`eDP-1`) is off;
+unplugging the last one turns it back on. kanshi does this from the shipped
+[`/etc/kanshi/config`](./files/system/etc/kanshi/config). Writing
+`~/.config/kanshi/config` replaces that file entirely; start it with
+`include /etc/kanshi/config` to keep the shipped profiles, then
+`systemctl --user restart kanshi`.
+
+Editing an `output` block in your niri config makes niri re-apply its own
+output settings, which turns the panel back on. kanshi does not notice, because
+the same monitors are still connected; `kanshictl reload` switches the panel off
+again.
 
 The
 [`niri-session-config-check`](./.github/workflows/niri-session-config-check.yml)
