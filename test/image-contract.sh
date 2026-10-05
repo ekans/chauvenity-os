@@ -43,8 +43,12 @@ done
 check '1Password chrome-sandbox is setuid'      'test -u /usr/lib/opt/1Password/chrome-sandbox'
 check '1Password BrowserSupport setgid to 1500' 'test -g /usr/lib/opt/1Password/1Password-BrowserSupport && test "$(stat -c %g /usr/lib/opt/1Password/1Password-BrowserSupport)" = 1500'
 check 'op setgid to 1600'                       'test -g /usr/bin/op && test "$(stat -c %g /usr/bin/op)" = 1600'
-check 'sysusers recreates the 1Password groups' 'grep -qx "g onepassword 1500" /usr/lib/sysusers.d/onepassword.conf && grep -qx "g onepassword-cli 1600" /usr/lib/sysusers.d/onepassword-cli.conf'
-check 'no rpm-ostree 1Password group entries'   '! test -e /usr/lib/sysusers.d/30-rpmostree-pkg-group-onepassword.conf && ! test -e /usr/lib/sysusers.d/30-rpmostree-pkg-group-onepassword-cli.conf'
+check '1password-mcp setgid to 1700'            'test -g /usr/lib/opt/1Password/1password-mcp && test "$(stat -c %g /usr/lib/opt/1Password/1password-mcp)" = 1700'
+check 'sysusers recreates the 1Password groups' 'grep -qx "g onepassword 1500" /usr/lib/sysusers.d/onepassword.conf && grep -qx "g onepassword-cli 1600" /usr/lib/sysusers.d/onepassword-cli.conf && grep -qx "g onepassword-mcp 1700" /usr/lib/sysusers.d/onepassword-mcp.conf'
+check 'no rpm-ostree 1Password group entries'   '! test -e /usr/lib/sysusers.d/30-rpmostree-pkg-group-onepassword.conf && ! test -e /usr/lib/sysusers.d/30-rpmostree-pkg-group-onepassword-cli.conf && ! test -e /usr/lib/sysusers.d/30-rpmostree-pkg-group-onepassword-mcp.conf'
+# A fresh install keeps the image's /etc/group, and sysusers never renumbers a
+# group that exists: an entry with another GID leaves the one above nameless.
+check 'image /etc/group has the pinned GIDs'    'awk -F: "(\$1 == \"onepassword\" && \$3 != 1500) || (\$1 == \"onepassword-cli\" && \$3 != 1600) || (\$1 == \"onepassword-mcp\" && \$3 != 1700) { print; bad = 1 } END { exit bad }" /etc/group'
 check 'no 1Password repo left behind'           '! test -e /etc/yum.repos.d/1password.repo'
 
 # LUKS unlock at the boot prompt needs both: fr.map.gz in the initramfs, and the
