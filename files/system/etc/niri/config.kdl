@@ -50,10 +50,10 @@ layout {
 
 // --- session services ---------------------------------------------------
 //
-// Idle/lock handling, the polkit agent, notifications, the keyring and the
-// SSH agent are NOT started from here: they are systemd user units pulled in
-// by niri.service, so they keep running even when this file fails to parse.
-// See /usr/lib/systemd/user/niri.service.d/10-chauvenity-session.conf.
+// The bar, idle/lock handling, the polkit agent, notifications, the keyring
+// and the SSH agent are NOT started from here: they are systemd user units
+// pulled in by niri.service, so they keep running even when this file fails to
+// parse. See /usr/lib/systemd/user/niri.service.d/10-chauvenity-session.conf.
 //
 // To drop one for your user:  systemctl --user mask chauvenity-polkit-agent.service
 // To add one of your own, spawn-at-startup still works and is the right place

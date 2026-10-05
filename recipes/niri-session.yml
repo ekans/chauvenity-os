@@ -1,8 +1,9 @@
-# niri desktop session, offered alongside GNOME in GDM.
+# niri + Quickshell desktop session, offered alongside GNOME in GDM.
 #
-# Every package here ships in the Fedora 44 repositories — niri and
-# xwayland-satellite are both in Fedora proper, so this file adds no COPR.
-# Keep it that way.
+# Every package here ships in the Fedora 44 repositories — niri, quickshell and
+# xwayland-satellite are all in Fedora proper, so this file adds no COPR. Keep
+# it that way: the alternatives (DankMaterialShell, Noctalia) would each pull in
+# a COPR, and one of them would replace Fedora's quickshell image-wide.
 modules:
   - type: dnf
     install:
@@ -20,6 +21,10 @@ modules:
         # Xwayland for the niri session. niri already hard-Requires it
         # (>= 0.7) and spawns it itself; listed so the dependency is visible.
         - xwayland-satellite
+        # QML runtime the bar in files/system/etc/xdg/quickshell/ is written
+        # against. Fedora's build, not the danklinux COPR's, so it cannot
+        # displace anything else in the image.
+        - quickshell
 
         # Pieces GNOME provides from inside gnome-shell and niri does not.
         # fuzzel and swaylock are only niri Recommends; the rest are not niri
@@ -47,3 +52,16 @@ modules:
         - xdg-desktop-portal-gtk
         # Secret Service backend; also the Secret portal per niri-portals.conf.
         - gnome-keyring
+
+  # Bring the base's Qt up to the release quickshell was built against.
+  # quickshell only requires `libQt6Core.so.6(Qt_6.11)`, so when bluefin-dx
+  # lags Fedora by a Qt patch release dnf installs it next to the older Qt and
+  # `qs` dies on an undefined symbol: no bar. dnf5's `install` (the dnf
+  # module) never upgrades a package the base already has, so this is an
+  # explicit upgrade of exactly the qt6 packages the base ships. A no-op once
+  # the base catches up. `qs --version` fails the build on any future skew
+  # instead of shipping a bar that cannot start.
+  - type: script
+    snippets:
+      - "dnf -y upgrade 'qt6-*'"
+      - qs --version
