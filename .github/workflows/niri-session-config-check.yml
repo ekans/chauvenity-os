@@ -9,6 +9,8 @@
 # Cheap enough to run on every PR that touches the config: one Fedora 44
 # container, no image build. It cannot tell you the session *looks* right, or
 # that the units start in the right order — only booting the image does that.
+# Nor whether `qs` starts on the pinned base's Qt: the image build checks that
+# itself, at the end of recipes/niri-session.yml.
 
 name: niri-session-config-check
 
@@ -19,12 +21,7 @@ on:
       - "files/system/etc/xdg/quickshell/**"
       - "files/system/etc/niri/**"
       - "files/system/usr/lib/systemd/user/**"
-      # recipes/** matters for the runtime job below: a Renovate base-digest
-      # bump changes recipe.yml, and that is exactly when the base's library
-      # versions move under us.
-      - "recipes/**"
       - ".github/workflows/niri-session-config-check.yml"
-      - ".github/scripts/base-image-runtime-check.sh"
   pull_request:
     paths: *session-paths
   workflow_dispatch:
@@ -40,7 +37,7 @@ jobs:
       # niri and quickshell here are the ones the image ships.
       image: registry.fedoraproject.org/fedora:44
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
 
       # qt6-qtdeclarative-devel is only here for qmllint.
       - name: Install niri, quickshell and qmllint
@@ -71,20 +68,3 @@ jobs:
           done
           exit $status
 
-  runs-on-the-pinned-base:
-    name: session runs on the pinned base image
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-
-      # bluefin-dx is large and the runner's default free space is not.
-      - name: Make room for the base image
-        run: |
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
-                      /usr/local/share/boost "$AGENT_TOOLSDIRECTORY" || true
-          df -h /
-
-      - name: Run the session's binaries on the pinned base
-        run: .github/scripts/base-image-runtime-check.sh

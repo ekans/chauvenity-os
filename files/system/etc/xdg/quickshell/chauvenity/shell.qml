@@ -9,20 +9,13 @@ pragma ComponentBehavior: Bound
 //     /etc/xdg/quickshell/chauvenity/shell.qml    <- this file
 //
 // To take it over, copy the whole directory and edit; Quickshell reloads the
-// QML every time a file is saved, so the bar changes without restarting the
-// session:
+// QML every time a file is saved:
 //
 //     mkdir -p ~/.config/quickshell
 //     cp -r /etc/xdg/quickshell/chauvenity ~/.config/quickshell/
 //     systemctl --user restart chauvenity-quickshell
 //
-// The mkdir is not optional: without it `cp -r` creates ~/.config/quickshell
-// *as* the copy and the files land one directory too high, where nothing reads
-// them. The directory and not just this file, because Quickshell resolves
-// `-c chauvenity` to the first `chauvenity/` it finds across the XDG config
-// dirs — a lone shell.qml there shadows the whole shipped directory, and any
-// file beside it that it uses then fails to resolve. And the restart once,
-// because the bar that is already running is still watching /etc.
+// Why each line matters: https://github.com/ekans/chauvenity-os#taking-it-over
 //
 // Deliberately a bar and nothing else: notifications come from mako and the
 // polkit prompt from mate-polkit, both their own systemd user units, so there
@@ -31,6 +24,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Wayland
 import Quickshell.Services.UPower
 import Quickshell.Services.Pipewire
 
@@ -49,14 +43,6 @@ ShellRoot {
     // object per line. Everything below tolerates unknown or missing fields:
     // a niri release that adds an event must not take the bar down.
     property var workspaces: []
-
-    readonly property string focusedTitle:
-        (root.focusedWindowId !== null && root.focusedWindowId in root.windowTitles)
-            ? root.windowTitles[root.focusedWindowId]
-            : ""
-
-    property var windowTitles: ({})
-    property var focusedWindowId: null
 
     function handleEvent(line) {
         let ev;
@@ -89,34 +75,6 @@ ShellRoot {
                     next.is_focused = isTarget;
                 return next;
             });
-        } else if (ev.WindowsChanged) {
-            const titles = {};
-            let focused = null;
-            for (const w of (ev.WindowsChanged.windows || [])) {
-                titles[w.id] = w.title || "";
-                if (w.is_focused)
-                    focused = w.id;
-            }
-            root.windowTitles = titles;
-            root.focusedWindowId = focused;
-        } else if (ev.WindowOpenedOrChanged) {
-            const w = ev.WindowOpenedOrChanged.window;
-            if (!w)
-                return;
-            const titles = Object.assign({}, root.windowTitles);
-            titles[w.id] = w.title || "";
-            root.windowTitles = titles;
-            if (w.is_focused)
-                root.focusedWindowId = w.id;
-        } else if (ev.WindowClosed) {
-            const titles = Object.assign({}, root.windowTitles);
-            delete titles[ev.WindowClosed.id];
-            root.windowTitles = titles;
-            if (root.focusedWindowId === ev.WindowClosed.id)
-                root.focusedWindowId = null;
-        } else if (ev.WindowFocusChanged) {
-            const id = ev.WindowFocusChanged.id;
-            root.focusedWindowId = (id === undefined) ? null : id;
         }
     }
 
@@ -181,7 +139,6 @@ ShellRoot {
 
             // Left: workspace indices.
             Row {
-                id: workspaceRow
                 anchors.left: parent.left
                 anchors.leftMargin: 8
                 anchors.verticalCenter: parent.verticalCenter
@@ -215,33 +172,36 @@ ShellRoot {
 
                         MouseArea {
                             anchors.fill: parent
-                            onClicked: focusWorkspace.running = true
-
                             // `focus-workspace` takes an index or a name, not
                             // an id, and an index is resolved against the
                             // *focused* output — so the monitor has to be
                             // focused first for a click on another bar to land
                             // on the workspace that was actually clicked.
-                            Process {
-                                id: focusWorkspace
-                                command: ["sh", "-c",
-                                          "niri msg action focus-monitor \"$1\" && niri msg action focus-workspace \"$2\"",
-                                          "sh",
-                                          String(wsItem.modelData.output),
-                                          String(wsItem.modelData.idx)]
-                            }
+                            onClicked: Quickshell.execDetached(
+                                ["sh", "-c",
+                                 "niri msg action focus-monitor \"$1\" && niri msg action focus-workspace \"$2\"",
+                                 "sh",
+                                 String(wsItem.modelData.output),
+                                 String(wsItem.modelData.idx)])
                         }
                     }
                 }
             }
 
-            // Centre: title of the focused window.
+            // Centre: title of the focused window. activeToplevel is only
+            // cleared when its window closes, not when focus moves to an empty
+            // workspace, hence the `activated` check.
             Text {
                 anchors.centerIn: parent
                 width: Math.min(implicitWidth, bar.width * 0.4)
                 elide: Text.ElideRight
                 horizontalAlignment: Text.AlignHCenter
-                text: root.focusedTitle
+                // Any client sets its own title. AutoText would render markup
+                // in it, <img src="https://…"> included, and fetch that URL.
+                textFormat: Text.PlainText
+                text: ToplevelManager.activeToplevel?.activated
+                    ? ToplevelManager.activeToplevel.title
+                    : ""
                 color: root.dimColor
                 font.pixelSize: 12
             }

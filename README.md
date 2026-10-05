@@ -81,7 +81,7 @@ Each line matters. Without the `mkdir`, `cp -r` creates
 and are silently ignored. And copy the **directory**, not just `shell.qml`:
 Quickshell resolves `-c chauvenity` to the first `chauvenity/` it finds across
 the XDG config dirs, so a lone `shell.qml` in `~/.config` shadows the shipped
-directory and the bar then fails to resolve its own components.
+directory, and any other file the bar loads from it is no longer found.
 
 The one-time `restart` is because the running bar is still watching
 `/etc/xdg/quickshell/chauvenity`; it picks up the new location on restart and
