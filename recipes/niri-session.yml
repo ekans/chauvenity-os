@@ -32,6 +32,7 @@ modules:
         - mako # org.freedesktop.Notifications daemon
         - mate-polkit # polkit agent: one libexec binary, pulls in no MATE session
         - brightnessctl # backlight keys
+        - kanshi # laptop panel off while an external monitor is connected
         # wpctl, used by the four volume keybinds in /etc/niri/config.kdl.
         # Already pulled in by the GNOME side of the image, but niri only
         # Recommends it, so a weak-dep change must not take the keys out.
