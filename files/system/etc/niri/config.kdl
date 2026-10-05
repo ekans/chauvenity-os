@@ -5,11 +5,16 @@
 //   2. $XDG_CONFIG_HOME/niri/config.kdl   (normally ~/.config/niri/config.kdl)
 //   3. /etc/niri/config.kdl               <- this file
 // Because this file exists, niri will NOT auto-generate a user config on first
-// login. To take this session over, copy it and edit freely — niri re-reads
-// the file every time it is saved, no logout needed:
+// login. To take this session over, include this file from your own config and
+// override below it — later settings win, and niri re-reads both files every
+// time either is saved, no logout needed. Including rather than copying keeps
+// you on later changes to this file:
 //
-//     mkdir -p ~/.config/niri
-//     cp /etc/niri/config.kdl ~/.config/niri/config.kdl
+//     // ~/.config/niri/config.kdl
+//     include "/etc/niri/config.kdl"
+//
+//     // your overrides below, e.g.
+//     layout { gaps 4; }
 //
 // Upstream's fully commented reference config lives at
 // /usr/share/doc/niri/default-config.kdl, and the option reference is at
@@ -30,63 +35,39 @@ input {
         tap
         natural-scroll
     }
-
-    // Focus follows the mouse only within windows already fully on screen,
-    // which is the closest thing to GNOME's click-to-focus that does not
-    // fight the scrolling layout.
-    focus-follows-mouse max-scroll-amount="0%"
 }
 
 layout {
     gaps 12
-    center-focused-column "never"
-
-    preset-column-widths {
-        proportion 0.33333
-        proportion 0.5
-        proportion 0.66667
-    }
-
-    default-column-width { proportion 0.5; }
+    background-color "#241f31"
 
     focus-ring {
         width 2
         active-color "#62a0ea"
         inactive-color "#3d3846"
     }
-
-    border {
-        off
-    }
 }
 
 // --- session services ---------------------------------------------------
 //
-// Idle/lock handling, wallpaper, the polkit agent, notifications and the
-// keyring are NOT started from here. They are systemd user units pulled in by
-// niri.service (see /usr/lib/systemd/user/niri.service.d/10-chauvenity-session.conf),
-// which makes them niri-only and, more importantly, keeps them running even
-// when this file fails to parse — niri then starts on its built-in defaults,
-// and anything listed here would silently not run, lock screen included.
+// Idle/lock handling, the polkit agent, notifications, the keyring and the
+// SSH agent are NOT started from here: they are systemd user units pulled in
+// by niri.service, so they keep running even when this file fails to parse.
+// See /usr/lib/systemd/user/niri.service.d/10-chauvenity-session.conf.
 //
-// To drop one for your user:  systemctl --user mask chauvenity-swaybg.service
+// To drop one for your user:  systemctl --user mask chauvenity-polkit-agent.service
 // To add one of your own, spawn-at-startup still works and is the right place
 // for anything personal.
 
-// The "Important Hotkeys" pop-up is left on at startup (niri's default): it is
-// the only discoverable list of the binds below.
+// The "Important Hotkeys" pop-up is left on at startup (niri's default): it
+// lists the main keybinds. Rows for actions this config does not bind are
+// hidden.
+hotkey-overlay {
+    hide-not-bound
+}
 
 // Ask clients to drop their own title bars where they can.
 prefer-no-csd
-
-screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
-
-environment {
-    // Qt apps (including Quickshell) prefer Wayland, but fall back to xcb
-    // through xwayland-satellite rather than refusing to start if a bundled
-    // Qt has no wayland platform plugin.
-    QT_QPA_PLATFORM "wayland;xcb"
-}
 
 window-rule {
     geometry-corner-radius 8
@@ -99,7 +80,9 @@ binds {
     // --- launching ---
     Mod+Return hotkey-overlay-title="Open a Terminal: ghostty" { spawn "ghostty"; }
     Mod+D hotkey-overlay-title="Run an Application: fuzzel" { spawn "fuzzel"; }
-    Mod+Alt+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn "swaylock" "-f"; }
+    // allow-when-locked so a dead lock client can be replaced from the
+    // keyboard; niri refuses a second one while the first is alive.
+    Mod+Alt+L allow-when-locked=true hotkey-overlay-title="Lock the Screen: swaylock" { spawn "swaylock" "-f"; }
 
     // --- media / backlight keys ---
     XF86AudioRaiseVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "0.05+" "--limit" "1.0"; }

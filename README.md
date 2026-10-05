@@ -43,46 +43,46 @@ nothing here touches a GNOME package, a GNOME default or a GDM setting.
 scrolling-tiling Wayland compositor. Its point is live editing — niri re-reads
 its config the moment the file is saved, so the desktop changes without logging
 out. Everything it needs comes from the Fedora repositories (no COPR): `niri`,
-`xwayland-satellite`, plus `fuzzel` (launcher), `swaybg`, `swayidle`,
-`swaylock`, `mako` (notifications), `mate-polkit`, `wireplumber` and
-`brightnessctl`. Screenshare goes through `xdg-desktop-portal-gnome`, the same
-portal GNOME uses, because niri implements the `org.gnome.Mutter.ScreenCast`
-interfaces. There is no panel yet; `Mod+Shift+/` lists the keybinds.
+`xwayland-satellite`, plus `fuzzel` (launcher), `swayidle`, `swaylock`, `mako`
+(notifications), `mate-polkit`, `wireplumber` and `brightnessctl`. Screenshare
+goes through `xdg-desktop-portal-gnome`, the same portal GNOME uses, because
+niri implements the `org.gnome.Mutter.ScreenCast` interface. There is no panel
+yet; `Mod+Shift+/` lists the main keybinds.
 
 #### Taking it over
 
-The system default ships read-only in `/etc`; a user overrides it per-user and
-edits it live:
+The system default ships read-only in `/etc`. Override it per-user by including
+it from your own config, then edit live; later settings win, and you keep
+getting changes made to `/etc/niri/config.kdl`:
 
-```bash
-mkdir -p ~/.config/niri && cp /etc/niri/config.kdl ~/.config/niri/
+```kdl
+// ~/.config/niri/config.kdl
+include "/etc/niri/config.kdl"
+
+// your overrides below, e.g.
+layout { gaps 4; }
 ```
 
 > [!WARNING]
 > Run `niri validate` before logging out after editing `~/.config/niri/config.kdl`.
 > If that file exists but fails to parse, niri does **not** fall back to
-> `/etc/niri/config.kdl` — it starts on its own built-in defaults, so your
-> keybinds are gone.
+> `/etc/niri/config.kdl` — it starts on upstream's default config instead: your
+> own binds are gone, and its terminal bind (`Mod+T`, alacritty) does nothing on
+> this image. The lock screen and other session services keep running.
 
 #### How the session starts
 
 The compositor comes from the `niri` RPM's own
 `/usr/share/wayland-sessions/niri.desktop`. Everything else — idle and lock
-handling, wallpaper, the polkit agent, notifications and the keyring
-components — runs as systemd user units pulled in by a drop-in on
-`niri.service`
-([`files/system/usr/lib/systemd/user/`](./files/system/usr/lib/systemd/user/)).
-
-That is deliberate on two counts. `niri.service` has no `[Install]` section and
-is started only by `niri-session`, so these units are niri-only by
-construction and cannot run inside GNOME — whereas enabling `mako.service` the
-ordinary way *would* start it under GNOME, because its own `[Install]` is
-`WantedBy=graphical-session.target`. And because they do not depend on
-`config.kdl` parsing, a typo in your config can no longer take the lock screen
-with it. To drop one:
+handling, the polkit agent, notifications (expiring after 10 s), the keyring
+components and the SSH agent (`gcr-ssh-agent`) — runs as systemd user units
+pulled in by a drop-in on `niri.service`, so they are niri-only and survive a
+broken `config.kdl`. The reasoning is in
+[`niri.service.d/10-chauvenity-session.conf`](./files/system/usr/lib/systemd/user/niri.service.d/10-chauvenity-session.conf).
+To drop one:
 
 ```bash
-systemctl --user mask chauvenity-swaybg.service
+systemctl --user mask chauvenity-polkit-agent.service
 ```
 
 The

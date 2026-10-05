@@ -1,8 +1,9 @@
 # Checks the niri session's shipped configuration without building the image.
 #
 #   GREEN = niri accepts the config the image ships.
-#   RED   = a change to the session would ship a config niri cannot parse,
-#           which costs you your keybinds at the next login.
+#   RED   = a change to the session would ship a config niri cannot parse:
+#           niri would start on upstream's default config instead, without
+#           your binds and with a terminal bind (alacritty) that does nothing.
 #
 # Cheap enough to run on every PR that touches the session: one Fedora 44
 # container, no image build. It cannot tell you the session *looks* right, or
@@ -12,6 +13,7 @@ name: niri-session-config-check
 
 on:
   push:
+    branches: [main]
     paths: &session-paths
       - "files/system/etc/niri/**"
       - "files/system/usr/lib/systemd/user/**"
@@ -31,9 +33,9 @@ jobs:
       # here is the one the image ships.
       image: registry.fedoraproject.org/fedora:44
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - name: Install the same packages the image installs
+      - name: Install niri
         run: dnf install -y --setopt=install_weak_deps=False niri
 
       - name: Validate the niri config

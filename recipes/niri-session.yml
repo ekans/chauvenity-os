@@ -6,11 +6,11 @@
 modules:
   - type: dnf
     install:
-      # niri Recommends alacritty, waybar, fontawesome fonts and more. Those
-      # are not session dependencies, they are upstream's suggested desktop —
-      # and Alacritty.desktop has no NoDisplay or OnlyShowIn, so it would show
-      # up in GNOME's app grid. Everything this session actually needs is
-      # listed below as a hard requirement instead.
+      # niri Recommends alacritty and waybar (and, through waybar, fontawesome
+      # fonts). Those are not session dependencies, they are upstream's
+      # suggested desktop — and Alacritty.desktop has no NoDisplay or
+      # OnlyShowIn, so it would show up in GNOME's app grid. Everything this
+      # session actually needs is listed below as a hard requirement instead.
       install-weak-deps: false
       packages:
         # The compositor. Ships /usr/share/wayland-sessions/niri.desktop (which
@@ -22,11 +22,11 @@ modules:
         - xwayland-satellite
 
         # Pieces GNOME provides from inside gnome-shell and niri does not.
-        # niri only *Recommends* most of these; installing them explicitly
-        # keeps the session's dependencies readable here instead of implied
-        # by weak deps that a future niri release could drop.
+        # fuzzel and swaylock are only niri Recommends; the rest are not niri
+        # deps at all. Installing them explicitly keeps the session's
+        # dependencies readable here instead of implied by weak deps that a
+        # future niri release could drop.
         - fuzzel # application launcher (Mod+D)
-        - swaybg # wallpaper — niri paints nothing behind windows
         - swayidle # idle watcher; drives the lock screen
         - swaylock # lock screen (Mod+Alt+L)
         - mako # org.freedesktop.Notifications daemon
@@ -40,7 +40,7 @@ modules:
         # Portals. Already present in bluefin-dx, but niri-portals.conf
         # (shipped by the niri RPM) names them explicitly as
         # "default=gnome;gtk;" — niri implements the org.gnome.Mutter
-        # ScreenCast/RemoteDesktop interfaces, so screenshare under niri goes
+        # ScreenCast interface, so screenshare under niri goes
         # through xdg-desktop-portal-gnome exactly as it does under GNOME.
         # Listed so a base-image change cannot silently break screenshare here.
         - xdg-desktop-portal-gnome

@@ -8,10 +8,7 @@
 # which is OnlyShowIn=GNOME and so never runs here.
 [Unit]
 Description=Initialize gnome-keyring components (niri session)
-# BindsTo rather than PartOf: PartOf only propagates an explicit `systemctl
-# stop niri.service`. When niri exits on its own the units would otherwise
-# outlive it — the polkit agent restart-looping until it fails, the keyring
-# oneshot sitting active forever.
+# Lifetime tied to niri: see niri.service.d/10-chauvenity-session.conf
 BindsTo=niri.service
 After=niri.service graphical-session.target
 
