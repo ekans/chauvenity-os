@@ -3,3 +3,4 @@ cosign.private
 /Containerfile
 .gh-config
 tmp/
+/.bluebuild-scripts_*

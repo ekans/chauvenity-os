@@ -5,14 +5,69 @@
 # Run a task:        mise run <name>
 # Task details:      mise tasks info <name>
 
+[tools]
+# Boots the built image in a VM without root.
+"github:bootc-dev/bcvk" = "0.19.0"
+
 [env]
 # Single source of truth for the image reference used by all tasks below.
 IMAGE = "ghcr.io/ekans/chauvenity-os:latest"
+# Where `build` leaves the image. bluebuild writes the other tags under this
+# name on every build; `local` is the one it never touches.
+LOCAL_IMAGE = "localhost/chauvenity-os:local"
 RECIPE = "recipes/recipe.yml"
+# The `vm` tasks' libvirt VM, on the rootless session connection.
+VM = "chauvenity-local"
+VM_CONNECT = "qemu:///session"
+
+[tasks.check]
+description = "Static checks, no build: recipe schema, shell scripts, module order"
+run = [
+  "bluebuild validate $RECIPE",
+  "shellcheck scripts/*.sh test/*.sh files/scripts/*.sh",
+  # initramfs regenerates from what the modules before it installed.
+  '''yq -e '.modules[-1].type == "initramfs"' $RECIPE >/dev/null 2>&1 || { echo "initramfs must stay the last module in $RECIPE" >&2; exit 1; }''',
+]
 
 [tasks.build]
-description = "Build the image locally with the BlueBuild CLI"
-run = "bluebuild build $RECIPE"
+description = "Build the image into local podman storage (rootless)"
+run = "scripts/build.sh"
+
+[tasks."test:contract"]
+description = "Check the built image against what the recipes promise, without booting it"
+run = "test/image-contract.sh $LOCAL_IMAGE"
+
+[tasks."test:boot"]
+description = "Boot the built image in a throwaway VM and check it at runtime"
+run = "test/boot.sh $LOCAL_IMAGE"
+
+[tasks.verify]
+description = "check, build, test:contract, test:boot; stops at the first failure"
+run = [{ task = "check" }, { task = "build" }, { task = "test:contract" }, { task = "test:boot" }]
+
+[tasks.vm]
+description = "Install the built image to a libvirt VM disk and boot it (replaces the VM)"
+run = "scripts/vm.sh $LOCAL_IMAGE"
+
+[tasks."vm:view"]
+description = "Open the VM's desktop"
+run = "virt-viewer -c $VM_CONNECT $VM"
+
+[tasks."vm:ssh"]
+description = "Open a root shell in the VM"
+run = "bcvk libvirt -c $VM_CONNECT ssh $VM"
+
+[tasks."vm:rm"]
+description = "Remove the VM and its disks"
+run = ["bcvk libvirt -c $VM_CONNECT rm -f $VM", "bcvk libvirt -c $VM_CONNECT base-disks prune"]
+
+[tasks.clean]
+description = "Remove the VM and the local image"
+run = [
+  "bcvk libvirt -c $VM_CONNECT rm -f $VM 2>/dev/null || true",
+  "bcvk libvirt -c $VM_CONNECT base-disks prune",
+  "podman rmi --ignore $LOCAL_IMAGE",
+]
 
 [tasks.rebase]
 description = "Build locally and rebase the running system onto the resulting image"

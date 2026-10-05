@@ -1,0 +1,33 @@
+# Weekly check that the published image still keeps what the recipes promise,
+# with the same script `mise run test:contract` runs on a local build.
+#
+#   GREEN = every check in test/image-contract.sh passed on :latest.
+#   RED   = the log's FAIL lines name what the published image lost.
+#
+# This includes the LUKS keymap: fr.map.gz in the initramfs and the
+# rd.vconsole.keymap=fr karg that selects it. fr.map.gz is supplied by upstream
+# bluefin-dx's pre-baked initramfs (the local dracut drop-in was removed in
+# #44), so a red keymap check can mean upstream dropped it.
+#
+# Detection is reactive by design: a regression is caught after a broken image
+# publishes, not before. Acceptable for a single-user daily-driver image (the
+# failure surfaces at first boot anyway). Revisit a pre-publish gate if this
+# image is ever used on machines you don't boot yourself.
+
+name: image-contract
+
+on:
+  schedule:
+    - cron: "30 7 * * 1" # Monday 07:30 UTC
+  workflow_dispatch:
+
+jobs:
+  image-contract:
+    name: published image contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Pull the published image
+        run: podman pull ghcr.io/ekans/chauvenity-os:latest
+      - name: Check the image contract
+        run: test/image-contract.sh ghcr.io/ekans/chauvenity-os:latest
