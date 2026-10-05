@@ -47,6 +47,10 @@ check 'sysusers recreates the 1Password groups' 'grep -qx "g onepassword 1500" /
 check 'no rpm-ostree 1Password group entries'   '! test -e /usr/lib/sysusers.d/30-rpmostree-pkg-group-onepassword.conf && ! test -e /usr/lib/sysusers.d/30-rpmostree-pkg-group-onepassword-cli.conf'
 check 'no 1Password repo left behind'           '! test -e /etc/yum.repos.d/1password.repo'
 
+# This container's /var is empty, like a fresh install's first boot: run the
+# boot's tmpfiles lines for /opt and check every /opt app gets its link.
+check 'first boot links the /opt apps' 'systemd-tmpfiles --create --boot --prefix=/opt --prefix=/var/opt && for d in /usr/lib/opt/*; do test -L "/var/opt/${d##*/}" || { echo "no /opt/${d##*/}"; exit 1; }; done'
+
 # LUKS unlock at the boot prompt needs both: fr.map.gz in the initramfs, and the
 # karg that selects it. With the file but no karg, every boot falls back to
 # QWERTY and the AZERTY passphrase fails. fr.map.gz comes from upstream
