@@ -18,10 +18,18 @@ modules:
   - from-file: erlang-deps.yml
   - from-file: phoenix-deps.yml
 
+  # Second desktop session: niri, listed next to GNOME in GDM.
+  # GNOME remains the default; nothing here touches it.
+  - from-file: niri-session.yml
+
   # Select the fr keymap for the LUKS unlock prompt via rd.vconsole.keymap=fr
   # (files/system/usr/lib/bootc/kargs.d). Upstream bluefin-dx again bakes
   # fr.map.gz into its initramfs, so the local dracut drop-in was removed.
   # See docs/adr/0002-fr-keymap-rd-vconsole-karg.md (supersedes 0001).
+  #
+  # Also carries the niri session's system default /etc/niri/config.kdl,
+  # overridable from ~/.config, and the session's systemd user units under
+  # usr/lib/systemd/user.
   - type: files
     files:
       - source: system

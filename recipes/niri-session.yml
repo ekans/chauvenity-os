@@ -1,0 +1,49 @@
+# niri desktop session, offered alongside GNOME in GDM.
+#
+# Every package here ships in the Fedora 44 repositories — niri and
+# xwayland-satellite are both in Fedora proper, so this file adds no COPR.
+# Keep it that way.
+modules:
+  - type: dnf
+    install:
+      # niri Recommends alacritty and waybar (and, through waybar, fontawesome
+      # fonts). Those are not session dependencies, they are upstream's
+      # suggested desktop — and Alacritty.desktop has no NoDisplay or
+      # OnlyShowIn, so it would show up in GNOME's app grid. Everything this
+      # session actually needs is listed below as a hard requirement instead.
+      install-weak-deps: false
+      packages:
+        # The compositor. Ships /usr/share/wayland-sessions/niri.desktop (which
+        # is what makes GDM list the session), /usr/bin/niri-session and
+        # /usr/lib/systemd/user/niri.service.
+        - niri
+        # Xwayland for the niri session. niri already hard-Requires it
+        # (>= 0.7) and spawns it itself; listed so the dependency is visible.
+        - xwayland-satellite
+
+        # Pieces GNOME provides from inside gnome-shell and niri does not.
+        # fuzzel and swaylock are only niri Recommends; the rest are not niri
+        # deps at all. Installing them explicitly keeps the session's
+        # dependencies readable here instead of implied by weak deps that a
+        # future niri release could drop.
+        - fuzzel # application launcher (Mod+D)
+        - swayidle # idle watcher; drives the lock screen
+        - swaylock # lock screen (Mod+Alt+L)
+        - mako # org.freedesktop.Notifications daemon
+        - mate-polkit # polkit agent: one libexec binary, pulls in no MATE session
+        - brightnessctl # backlight keys
+        # wpctl, used by the four volume keybinds in /etc/niri/config.kdl.
+        # Already pulled in by the GNOME side of the image, but niri only
+        # Recommends it, so a weak-dep change must not take the keys out.
+        - wireplumber
+
+        # Portals. Already present in bluefin-dx, but niri-portals.conf
+        # (shipped by the niri RPM) names them explicitly as
+        # "default=gnome;gtk;" — niri implements the org.gnome.Mutter
+        # ScreenCast interface, so screenshare under niri goes
+        # through xdg-desktop-portal-gnome exactly as it does under GNOME.
+        # Listed so a base-image change cannot silently break screenshare here.
+        - xdg-desktop-portal-gnome
+        - xdg-desktop-portal-gtk
+        # Secret Service backend; also the Secret portal per niri-portals.conf.
+        - gnome-keyring

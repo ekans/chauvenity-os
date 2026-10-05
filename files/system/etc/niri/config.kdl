@@ -1,0 +1,184 @@
+// chauvenity-os system-default niri configuration.
+//
+// niri looks for its config in this order:
+//   1. $NIRI_CONFIG
+//   2. $XDG_CONFIG_HOME/niri/config.kdl   (normally ~/.config/niri/config.kdl)
+//   3. /etc/niri/config.kdl               <- this file
+// Because this file exists, niri will NOT auto-generate a user config on first
+// login. To take this session over, include this file from your own config and
+// override below it — later settings win, and niri re-reads both files every
+// time either is saved, no logout needed. Including rather than copying keeps
+// you on later changes to this file:
+//
+//     // ~/.config/niri/config.kdl
+//     include "/etc/niri/config.kdl"
+//
+//     // your overrides below, e.g.
+//     layout { gaps 4; }
+//
+// Upstream's fully commented reference config lives at
+// /usr/share/doc/niri/default-config.kdl, and the option reference is at
+// https://yalter.github.io/niri/ .
+
+input {
+    keyboard {
+        xkb {
+            // Deliberately empty: niri then takes the layout from
+            // org.freedesktop.locale1, i.e. the same `localectl set-x11-keymap`
+            // setting GNOME uses, so the AZERTY setup keeps working here
+            // without being restated.
+        }
+        numlock
+    }
+
+    touchpad {
+        tap
+        natural-scroll
+    }
+}
+
+layout {
+    gaps 12
+    background-color "#241f31"
+
+    focus-ring {
+        width 2
+        active-color "#62a0ea"
+        inactive-color "#3d3846"
+    }
+}
+
+// --- session services ---------------------------------------------------
+//
+// Idle/lock handling, the polkit agent, notifications, the keyring and the
+// SSH agent are NOT started from here: they are systemd user units pulled in
+// by niri.service, so they keep running even when this file fails to parse.
+// See /usr/lib/systemd/user/niri.service.d/10-chauvenity-session.conf.
+//
+// To drop one for your user:  systemctl --user mask chauvenity-polkit-agent.service
+// To add one of your own, spawn-at-startup still works and is the right place
+// for anything personal.
+
+// The "Important Hotkeys" pop-up is left on at startup (niri's default): it
+// lists the main keybinds. Rows for actions this config does not bind are
+// hidden.
+hotkey-overlay {
+    hide-not-bound
+}
+
+// Ask clients to drop their own title bars where they can.
+prefer-no-csd
+
+window-rule {
+    geometry-corner-radius 8
+    clip-to-geometry true
+}
+
+binds {
+    Mod+Shift+Slash { show-hotkey-overlay; }
+
+    // --- launching ---
+    Mod+Return hotkey-overlay-title="Open a Terminal: ghostty" { spawn "ghostty"; }
+    Mod+D hotkey-overlay-title="Run an Application: fuzzel" { spawn "fuzzel"; }
+    // allow-when-locked so a dead lock client can be replaced from the
+    // keyboard; niri refuses a second one while the first is alive.
+    Mod+Alt+L allow-when-locked=true hotkey-overlay-title="Lock the Screen: swaylock" { spawn "swaylock" "-f"; }
+
+    // --- media / backlight keys ---
+    XF86AudioRaiseVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "0.05+" "--limit" "1.0"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "0.05-"; }
+    XF86AudioMute        allow-when-locked=true { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SINK@" "toggle"; }
+    XF86AudioMicMute     allow-when-locked=true { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SOURCE@" "toggle"; }
+    XF86MonBrightnessUp   allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "+5%"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "5%-"; }
+
+    // --- windows ---
+    Mod+Q repeat=false { close-window; }
+    Mod+O repeat=false { toggle-overview; }
+
+    Mod+Left  { focus-column-left; }
+    Mod+Down  { focus-window-down; }
+    Mod+Up    { focus-window-up; }
+    Mod+Right { focus-column-right; }
+    Mod+H     { focus-column-left; }
+    Mod+J     { focus-window-down; }
+    Mod+K     { focus-window-up; }
+    Mod+L     { focus-column-right; }
+
+    Mod+Ctrl+Left  { move-column-left; }
+    Mod+Ctrl+Down  { move-window-down; }
+    Mod+Ctrl+Up    { move-window-up; }
+    Mod+Ctrl+Right { move-column-right; }
+    Mod+Ctrl+H     { move-column-left; }
+    Mod+Ctrl+J     { move-window-down; }
+    Mod+Ctrl+K     { move-window-up; }
+    Mod+Ctrl+L     { move-column-right; }
+
+    Mod+Home { focus-column-first; }
+    Mod+End  { focus-column-last; }
+
+    Mod+Shift+Left  { focus-monitor-left; }
+    Mod+Shift+Down  { focus-monitor-down; }
+    Mod+Shift+Up    { focus-monitor-up; }
+    Mod+Shift+Right { focus-monitor-right; }
+
+    Mod+Shift+Ctrl+Left  { move-column-to-monitor-left; }
+    Mod+Shift+Ctrl+Down  { move-column-to-monitor-down; }
+    Mod+Shift+Ctrl+Up    { move-column-to-monitor-up; }
+    Mod+Shift+Ctrl+Right { move-column-to-monitor-right; }
+
+    // --- workspaces ---
+    Mod+Page_Down      { focus-workspace-down; }
+    Mod+Page_Up        { focus-workspace-up; }
+    Mod+U              { focus-workspace-down; }
+    Mod+I              { focus-workspace-up; }
+    Mod+Ctrl+Page_Down { move-column-to-workspace-down; }
+    Mod+Ctrl+Page_Up   { move-column-to-workspace-up; }
+    Mod+Ctrl+U         { move-column-to-workspace-down; }
+    Mod+Ctrl+I         { move-column-to-workspace-up; }
+
+    Mod+1 { focus-workspace 1; }
+    Mod+2 { focus-workspace 2; }
+    Mod+3 { focus-workspace 3; }
+    Mod+4 { focus-workspace 4; }
+    Mod+5 { focus-workspace 5; }
+    Mod+6 { focus-workspace 6; }
+    Mod+7 { focus-workspace 7; }
+    Mod+8 { focus-workspace 8; }
+    Mod+9 { focus-workspace 9; }
+
+    Mod+Ctrl+1 { move-column-to-workspace 1; }
+    Mod+Ctrl+2 { move-column-to-workspace 2; }
+    Mod+Ctrl+3 { move-column-to-workspace 3; }
+    Mod+Ctrl+4 { move-column-to-workspace 4; }
+    Mod+Ctrl+5 { move-column-to-workspace 5; }
+    Mod+Ctrl+6 { move-column-to-workspace 6; }
+    Mod+Ctrl+7 { move-column-to-workspace 7; }
+    Mod+Ctrl+8 { move-column-to-workspace 8; }
+    Mod+Ctrl+9 { move-column-to-workspace 9; }
+
+    // --- sizing ---
+    Mod+R { switch-preset-column-width; }
+    Mod+F { maximize-column; }
+    Mod+Shift+F { fullscreen-window; }
+    Mod+C { center-column; }
+    Mod+Minus { set-column-width "-10%"; }
+    Mod+Equal { set-column-width "+10%"; }
+    Mod+Shift+Minus { set-window-height "-10%"; }
+    Mod+Shift+Equal { set-window-height "+10%"; }
+    Mod+Comma  { consume-window-into-column; }
+    Mod+Period { expel-window-from-column; }
+    Mod+V      { toggle-window-floating; }
+    Mod+W      { toggle-column-tabbed-display; }
+
+    // --- screenshots ---
+    Print { screenshot; }
+    Ctrl+Print { screenshot-screen; }
+    Alt+Print { screenshot-window; }
+
+    // --- session ---
+    Mod+Shift+E { quit; }
+    Ctrl+Alt+Delete { quit; }
+
+    Mod+Shift+P { power-off-monitors; }
+}

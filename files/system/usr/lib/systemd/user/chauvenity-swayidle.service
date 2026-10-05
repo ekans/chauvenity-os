@@ -1,0 +1,32 @@
+# Idle handling for the niri session: lock, blank, and lock before suspend.
+#
+# Restart=always matters here more than anywhere else — if swayidle dies the
+# session silently stops locking for the rest of the login, with nothing on
+# screen to say so. swayidle exits 0 on a lost D-Bus or Wayland connection, so
+# on-failure would not cover it, and StartLimitIntervalSec=0 keeps a crash loop
+# from leaving the unit failed for good.
+#
+# swaylock runs in its own transient scope: forked into this unit's cgroup it
+# would be killed by every restart of swayidle, leaving the session locked with
+# no password prompt. The `|| swaylock -f` fallback keeps a failed systemd-run
+# from letting the machine suspend unlocked.
+#
+# The `lock` hook is what makes `loginctl lock-session` work; without it that
+# command is a no-op under niri.
+[Unit]
+Description=Idle locking and blanking (niri session)
+# Lifetime tied to niri: see niri.service.d/10-chauvenity-session.conf
+BindsTo=niri.service
+After=niri.service graphical-session.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/swayidle -w \
+    timeout 300 'systemd-run --user --scope --collect swaylock -f || swaylock -f' \
+    timeout 600 'niri msg action power-off-monitors' \
+    before-sleep 'systemd-run --user --scope --collect swaylock -f || swaylock -f' \
+    lock 'systemd-run --user --scope --collect swaylock -f || swaylock -f'
+Restart=always
+RestartSec=2
+Slice=session.slice
