@@ -123,14 +123,30 @@ The `latest` tag always points to the most recent build using the Fedora version
 
 ## Local Development
 
-Local build and rebase tasks are exposed through [mise-en-place](https://mise.jdx.dev/) in [`mise.toml`](./mise.toml). The [BlueBuild CLI](https://blue-build.org/learn/getting-started/#installing-the-bluebuild-cli) must be installed on the host.
+Tasks are exposed through [mise-en-place](https://mise.jdx.dev/) in [`mise.toml`](./mise.toml). The host needs the [BlueBuild CLI](https://blue-build.org/learn/getting-started/#installing-the-bluebuild-cli), podman, qemu, libvirt, `yq` and `shellcheck`; mise installs the pinned [bcvk](https://github.com/bootc-dev/bcvk). All tasks run without root except `rebase` and `generate-iso`.
 
 ```bash
 mise tasks               # list available tasks
-mise run build           # build the image locally
+mise run verify          # check, build, test:contract, test:boot: run this after a change
+mise run check           # seconds, no build: recipe schema, shellcheck, initramfs still last
+mise run build           # ~3 min, seconds when cached: image in podman as localhost/chauvenity-os:local
+mise run test:contract   # seconds: the image has what the recipes promise, without booting it
+mise run test:boot       # ~1 min: boot it in a throwaway VM, check units, desktop, groups
+mise run vm              # ~15 min: real install to a libvirt VM, the boot checks plus karg and SELinux
+mise run vm:view         # open the VM's desktop (vm:ssh for a shell, vm:rm to delete it)
+mise run clean           # remove the VM and the local image
 mise run rebase          # build and rebase the running system onto it
 mise run generate-iso    # generate a bootable ISO from the published image
 ```
+
+### Verifying a change
+
+Run `mise run verify`; it stops at the first failing step and exits non-zero. Every check prints one line, `ok   <name>` or `FAIL <name>` followed by the evidence (the command's output, or `systemctl status` of a failed unit), so a person or an agent can tell what broke without re-running anything.
+
+- `test:contract` runs [`test/image-contract.sh`](./test/image-contract.sh), the same script the weekly [`image-contract`](./.github/workflows/image-contract.yml) workflow runs on the published image. Packages added to a recipe's `dnf` module are checked automatically; anything else a change promises needs a `check` line there.
+- `test:boot` ([`test/boot.sh`](./test/boot.sh)) boots the container directly, which is fast but not a real install: SELinux is off and `kargs.d` is not applied. Use `mise run vm` ([`scripts/vm.sh`](./scripts/vm.sh)) for changes to boot, kargs or SELinux, and to look at the desktop.
+
+The local build differs from CI: it is not rechunked or signed, and its signature policy trusts `cosign.pub` for `localhost/chauvenity-os` rather than `ghcr.io/ekans/chauvenity-os`.
 
 ## Verification
 
@@ -152,9 +168,10 @@ cosign verify --key cosign.pub ghcr.io/ekans/chauvenity-os
   `/etc/vconsole.conf`, e.g. `fr-afnor`).
   Tracked by [`docs/adr/0002-fr-keymap-rd-vconsole-karg.md`](./docs/adr/0002-fr-keymap-rd-vconsole-karg.md)
   (supersedes 0001)
-  and the [`initramfs-keymap-check`](./.github/workflows/initramfs-keymap-check.yml)
-  workflow (positive check: red means our image's initramfs lost the
-  keymap).
+  and the keymap checks in [`test/image-contract.sh`](./test/image-contract.sh),
+  run weekly on the published image by the
+  [`image-contract`](./.github/workflows/image-contract.yml) workflow (red
+  means the initramfs lost the keymap or the karg is gone).
 
 ## Dependency updates
 
@@ -162,6 +179,7 @@ Managed by [Renovate](https://docs.renovatebot.com/) (config: `.github/renovate.
 
 Coverage:
 - GitHub Actions in `.github/workflows/` (built-in `github-actions` manager).
+- Tools pinned under `[tools]` in `mise.toml`, i.e. bcvk (built-in `mise` manager).
 - Pinned upstream RPMs in `recipes/*.yml` via inline `# renovate: datasource=... depName=...` annotations on the line above the version.
 - Base image digest in `recipes/recipe.yml` (`image-version: stable@sha256:...`), bumped by Renovate to drive rebuilds only when upstream changes. See [`docs/adr/0003-pin-base-digest-renovate.md`](./docs/adr/0003-pin-base-digest-renovate.md).
 
