@@ -1,0 +1,6 @@
+repo.ekans.source = "github:ekans/agents"
+
+agents = [
+  "./local.agents.md",
+  { repo = "ekans", path = "agentpart/agentsmd/craft.agents.md", ref = "craft/v2" },
+]
