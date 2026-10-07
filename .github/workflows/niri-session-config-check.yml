@@ -39,9 +39,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
-      # qt6-qtdeclarative-devel is only here for qmllint.
+      # qt6-qtdeclarative-devel is only here for qmllint. quickshell comes
+      # from the same COPR as in recipes/niri-session.yml.
       - name: Install niri, quickshell and qmllint
         run: |
+          dnf install -y dnf5-plugins
+          dnf copr enable -y errornointernet/quickshell
           dnf install -y --setopt=install_weak_deps=False \
             niri quickshell qt6-qtdeclarative-devel
 
