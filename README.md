@@ -44,9 +44,12 @@ scrolling-tiling Wayland compositor with a
 [Quickshell](https://quickshell.org/) bar. Its point is live editing — niri
 re-reads its config and Quickshell reloads its QML the moment either file is
 saved, so the desktop changes without logging out. Everything it needs comes
-from the Fedora repositories (no COPR): `niri`, `quickshell`,
-`xwayland-satellite`, plus `fuzzel` (launcher), `swayidle`, `swaylock`, `mako`
-(notifications), `mate-polkit`, `wireplumber` and `brightnessctl`. Screenshare
+from the Fedora repositories — `niri`, `xwayland-satellite`, plus `fuzzel`
+(launcher), `swayidle`, `swaylock`, `mako` (notifications), `mate-polkit`,
+`wireplumber` and `brightnessctl` — except `quickshell`, which comes from the
+[`errornointernet/quickshell`](https://copr.fedorainfracloud.org/coprs/errornointernet/quickshell/)
+COPR so the image ships the latest upstream release (Fedora's package is a
+0.2.1 snapshot). Screenshare
 goes through `xdg-desktop-portal-gnome`, the same portal GNOME uses, because
 niri implements the `org.gnome.Mutter.ScreenCast` interface. `Mod+Shift+/`
 lists the main keybinds.

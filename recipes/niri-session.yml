@@ -1,11 +1,16 @@
 # niri + Quickshell desktop session, offered alongside GNOME in GDM.
 #
-# Every package here ships in the Fedora 44 repositories — niri, quickshell and
-# xwayland-satellite are all in Fedora proper, so this file adds no COPR. Keep
-# it that way: the alternatives (DankMaterialShell, Noctalia) would each pull in
-# a COPR, and one of them would replace Fedora's quickshell image-wide.
+# Every package here but quickshell ships in the Fedora 44 repositories.
+# quickshell comes from errornointernet/quickshell, the COPR quickshell.org
+# lists for Fedora, which builds each upstream release; Fedora's own package is
+# a 0.2.1 git snapshot that has not followed upstream's 0.3 releases. Add no
+# other COPR: the alternatives (DankMaterialShell, Noctalia) would each pull
+# one in, and one of them would replace this quickshell image-wide.
 modules:
   - type: dnf
+    repos:
+      copr:
+        - errornointernet/quickshell
     install:
       # niri Recommends alacritty and waybar (and, through waybar, fontawesome
       # fonts). Those are not session dependencies, they are upstream's
@@ -22,8 +27,9 @@ modules:
         # (>= 0.7) and spawns it itself; listed so the dependency is visible.
         - xwayland-satellite
         # QML runtime the bar in files/system/etc/xdg/quickshell/ is written
-        # against. Fedora's build, not the danklinux COPR's, so it cannot
-        # displace anything else in the image.
+        # against. The latest upstream release, from the COPR above: its
+        # version sorts above Fedora's snapshot, so dnf picks it, and every
+        # image build picks up a new release. Not the danklinux COPR's build.
         - quickshell
 
         # Pieces GNOME provides from inside gnome-shell and niri does not.
