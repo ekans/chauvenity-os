@@ -40,7 +40,6 @@ modules:
         - fuzzel # application launcher (Mod+D)
         - swayidle # idle watcher; drives the lock screen
         - swaylock # lock screen (Mod+Alt+L)
-        - mako # org.freedesktop.Notifications daemon
         - mate-polkit # polkit agent: one libexec binary, pulls in no MATE session
         - brightnessctl # backlight keys
         # wpctl, used by the four volume keybinds in /etc/niri/config.kdl.
