@@ -26,16 +26,16 @@ check() {
 check 'bootc container lint' 'bootc container lint'
 
 # Every package a dnf module installs by name, read from the recipes so a new
-# one is covered without touching this file. URL installs have no name to read,
-# so they are listed below with what scripts and modules install.
+# one is covered without touching this file. What scripts install, and any URL
+# install (it has no name to read), is listed below.
 mapfile -t packages < <(yq --no-doc '.modules[] | select(.type == "dnf") | .install.packages[] | select(test("^https?://") | not)' recipes/*.yml)
-for p in "${packages[@]}" docker-sbx 1password 1password-cli; do
+for p in "${packages[@]}" 1password 1password-cli; do
   check "package $p" "rpm -q $p"
 done
 # /opt is /var/opt, empty until boot: tmpfiles then links each /opt/<app> to
 # the copy the dnf module moved to /usr/lib/opt. So read /opt apps from there;
 # test/boot.sh checks the links.
-for c in 'mise --version' 'ghostty --version' '/usr/lib/opt/brave.com/brave/brave-browser --version' 'op --version' 'sbx version' 'chezmoi --version'; do
+for c in 'mise --version' 'ghostty --version' '/usr/lib/opt/brave.com/brave/brave-browser --version' 'op --version' 'chezmoi --version'; do
   check "runs: $c" "$c"
 done
 
