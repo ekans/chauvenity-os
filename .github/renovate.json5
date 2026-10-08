@@ -45,5 +45,13 @@
       "automerge": true,
       "matchUpdateTypes": ["pin", "pinDigest", "digest"],
     },
+    {
+      // The niri-session-config-check container must track the Fedora
+      // release the base image is built on, so bump its major by hand with
+      // the base, not to the newest Fedora tag.
+      "matchDepNames": ["registry.fedoraproject.org/fedora"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false,
+    },
   ],
 }
