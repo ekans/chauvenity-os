@@ -11,8 +11,8 @@
   //
   // Usage: place a comment above the line containing the version, e.g.
   //
-  //   # renovate: datasource=github-releases depName=docker/sbx-releases
-  //   - https://github.com/docker/sbx-releases/releases/download/v0.30.0/...
+  //   # renovate: datasource=github-releases depName=<owner>/<repo>
+  //   - https://github.com/<owner>/<repo>/releases/download/v1.2.3/...
   //
   // The regex captures the version segment between /download/ and the next /.
   "customManagers": [

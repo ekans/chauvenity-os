@@ -15,7 +15,6 @@ Built on [bluefin-dx](https://github.com/ublue-os/bluefin) (stable), the develop
 ### Development Tools
 - **mise** (COPR `jdxcode/mise`) — polyglot dev tool version manager
 - **ghostty** (COPR `scottames/ghostty`) — GPU-accelerated terminal
-- **Docker Sandboxes (sbx)** — installed from upstream GitHub release
 - **1password** (via `bling` module)
 - **waydroid** (COPR `aleasto/waydroid`) — Android container runtime
 
@@ -215,7 +214,7 @@ Coverage:
 - GitHub Actions in `.github/workflows/` (built-in `github-actions` manager).
 - The Fedora container in [`niri-session-config-check`](./.github/workflows/niri-session-config-check.yml) (built-in `github-actions` manager). Major updates are disabled: its release must match the base image's, so bump it by hand along with the base.
 - Tools pinned under `[tools]` in `mise.toml`, i.e. bcvk (built-in `mise` manager).
-- Pinned upstream RPMs in `recipes/*.yml` via inline `# renovate: datasource=... depName=...` annotations on the line above the version.
+- Upstream RPMs installed by URL in `recipes/*.yml` (none at the moment), via inline `# renovate: datasource=... depName=...` annotations on the line above the version.
 - Base image digest in `recipes/recipe.yml` (`image-version: stable@sha256:...`), bumped by Renovate when upstream changes; each bump rebuilds the image. The [`bluebuild`](./.github/workflows/build.yml) workflow also rebuilds daily at 06:00 UTC, as in the [BlueBuild template](https://github.com/blue-build/template), to pick up updated layered packages. See [`docs/adr/0003-pin-base-digest-renovate.md`](./docs/adr/0003-pin-base-digest-renovate.md).
 
 Requires the [Mend Renovate GitHub App](https://github.com/apps/renovate) to be installed on the repository for PRs to be opened.

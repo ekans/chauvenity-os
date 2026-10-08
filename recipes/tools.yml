@@ -24,11 +24,6 @@ modules:
         - ghostty
         - mise
         - waydroid
-        # Docker Sandboxes (sbx) — installed directly from upstream RPM URL.
-        # The `dnf` module accepts http(s) URLs under install.packages.
-        # https://blue-build.org/reference/modules/dnf/
-        # renovate: datasource=github-releases depName=docker/sbx-releases
-        - https://github.com/docker/sbx-releases/releases/download/v0.30.0/DockerSandboxes-linux-amd64-rockylinux8.rpm
 
   # 1Password, installed by a local copy of the bling module's installer.
   # Upstream bling is broken: it installs a .desktop file the RPM no longer
