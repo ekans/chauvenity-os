@@ -64,4 +64,8 @@ check 'policy trusts the cosign key' 'jq -e "[.transports.docker[][] | select(.t
 # chezmoi module: applies ekans/dotfiles at first login, then keeps it updated.
 check 'chezmoi units enabled' 'systemctl --global is-enabled chezmoi-init.service chezmoi-update.timer'
 
+# The user's own Quickshell bar serves org.freedesktop.Notifications; anything
+# D-Bus-activatable would take the name whenever the bar is down.
+check 'nothing D-Bus-activates a notification daemon' '! grep -lsx "Name=org.freedesktop.Notifications" /usr/share/dbus-1/services/*.service'
+
 exit $fail

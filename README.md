@@ -45,7 +45,7 @@ scrolling-tiling Wayland compositor with a
 re-reads its config and Quickshell reloads its QML the moment either file is
 saved, so the desktop changes without logging out. Everything it needs comes
 from the Fedora repositories — `niri`, `xwayland-satellite`, plus `fuzzel`
-(launcher), `swayidle`, `swaylock`, `mako` (notifications), `mate-polkit`,
+(launcher), `swayidle`, `swaylock`, `mate-polkit`,
 `wireplumber` and `brightnessctl` — except `quickshell`, which comes from the
 [`errornointernet/quickshell`](https://copr.fedorainfracloud.org/coprs/errornointernet/quickshell/)
 COPR so the image ships the latest upstream release (Fedora's package is a
@@ -56,6 +56,11 @@ lists the main keybinds.
 
 The bar shows this output's workspaces, the focused window's title, volume,
 battery and the clock.
+
+No notification daemon is installed: notifications are left to your own copy
+of the bar (see below), which serves `org.freedesktop.Notifications` with
+Quickshell's notification service, so you can change them without building an
+image. Until you take the bar over, the niri session shows no notifications.
 
 #### Taking it over
 
@@ -103,9 +108,8 @@ bar no longer receives changes made to the image's copy.
 
 The compositor comes from the `niri` RPM's own
 `/usr/share/wayland-sessions/niri.desktop`. Everything else — the bar, idle
-and lock handling, the polkit agent, notifications (expiring after 10 s), the
-keyring components and the SSH agent (`gcr-ssh-agent`) — runs as systemd user
-units pulled in by a drop-in on `niri.service`, so they are niri-only and
+and lock handling, the polkit agent, the keyring components and the SSH agent
+(`gcr-ssh-agent`) — runs as systemd user units pulled in by a drop-in on `niri.service`, so they are niri-only and
 survive a broken `config.kdl`. The reasoning is in
 [`niri.service.d/10-chauvenity-session.conf`](./files/system/usr/lib/systemd/user/niri.service.d/10-chauvenity-session.conf).
 To drop one:

@@ -17,9 +17,10 @@ pragma ComponentBehavior: Bound
 //
 // Why each line matters: https://github.com/ekans/chauvenity-os#taking-it-over
 //
-// Deliberately a bar and nothing else: notifications come from mako and the
-// polkit prompt from mate-polkit, both their own systemd user units, so there
-// is no second implementation of either here.
+// Deliberately a bar and nothing else. The image ships no notification
+// daemon: serve org.freedesktop.Notifications from your own copy of this bar
+// (Quickshell.Services.Notifications), so it changes without an image build.
+// The polkit prompt comes from mate-polkit, its own systemd user unit.
 
 import QtQuick
 import Quickshell
