@@ -30,6 +30,10 @@ modules:
   # Also carries the niri session's system defaults — /etc/niri/config.kdl and
   # /etc/xdg/quickshell/chauvenity/, both overridable from ~/.config — and the
   # session's systemd user units under usr/lib/systemd/user.
+  #
+  # Also creates /var/opt before BlueBuild links the /opt apps into it
+  # (files/system/usr/lib/tmpfiles.d), so they exist on a fresh install's
+  # first boot.
   - type: files
     files:
       - source: system

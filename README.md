@@ -205,6 +205,15 @@ cosign verify --key cosign.pub ghcr.io/ekans/chauvenity-os
   run weekly on the published image by the
   [`image-contract`](./.github/workflows/image-contract.yml) workflow (red
   means the initramfs lost the keymap or the karg is gone).
+- **/opt apps missing on a fresh install's first boot.** BlueBuild links
+  each `/opt/<app>` (`/opt` points to `/var/opt`) from
+  `99-bluebuild-optfix-<app>.conf`, which tmpfiles reads before rpm-ostree's
+  config creates `/var/opt`. On the empty `/var` of a first boot the links
+  fail, and Brave and 1Password only appear after a reboot. chauvenity-os
+  creates `/var/opt` from a tmpfiles drop-in that sorts first,
+  [`00-chauvenity-var-opt.conf`](./files/system/usr/lib/tmpfiles.d/00-chauvenity-var-opt.conf).
+  Checked by `first boot links the /opt apps` in
+  [`test/image-contract.sh`](./test/image-contract.sh).
 
 ## Dependency updates
 
