@@ -18,3 +18,4 @@ check '/opt 1Password keeps setuid'  'test -u /opt/1Password/chrome-sandbox'
 # build time (files/scripts/install-1password.sh).
 check 'group onepassword is 1500'     'test "$(getent group onepassword | cut -d: -f3)" = 1500'
 check 'group onepassword-cli is 1600' 'test "$(getent group onepassword-cli | cut -d: -f3)" = 1600'
+check 'group onepassword-mcp is 1700' 'test "$(getent group onepassword-mcp | cut -d: -f3)" = 1700'

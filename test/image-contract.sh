@@ -43,8 +43,14 @@ done
 check '1Password chrome-sandbox is setuid'      'test -u /usr/lib/opt/1Password/chrome-sandbox'
 check '1Password BrowserSupport setgid to 1500' 'test -g /usr/lib/opt/1Password/1Password-BrowserSupport && test "$(stat -c %g /usr/lib/opt/1Password/1Password-BrowserSupport)" = 1500'
 check 'op setgid to 1600'                       'test -g /usr/bin/op && test "$(stat -c %g /usr/bin/op)" = 1600'
-check 'sysusers recreates the 1Password groups' 'grep -qx "g onepassword 1500" /usr/lib/sysusers.d/onepassword.conf && grep -qx "g onepassword-cli 1600" /usr/lib/sysusers.d/onepassword-cli.conf'
-check 'no rpm-ostree 1Password group entries'   '! test -e /usr/lib/sysusers.d/30-rpmostree-pkg-group-onepassword.conf && ! test -e /usr/lib/sysusers.d/30-rpmostree-pkg-group-onepassword-cli.conf'
+check '1password-mcp setgid to 1700'            'test -g /usr/lib/opt/1Password/1password-mcp && test "$(stat -c %g /usr/lib/opt/1Password/1password-mcp)" = 1700'
+check 'sysusers recreates the 1Password groups' 'grep -qx "g onepassword 1500" /usr/lib/sysusers.d/onepassword.conf && grep -qx "g onepassword-cli 1600" /usr/lib/sysusers.d/onepassword-cli.conf && grep -qx "g onepassword-mcp 1700" /usr/lib/sysusers.d/onepassword-mcp.conf'
+# The next two match any 1Password group, not just the three above, so a group
+# a newer 1Password adds (as onepassword-mcp was) fails here until it is pinned.
+check 'no rpm-ostree 1Password group entries'   'shopt -s nullglob; f=(/usr/lib/sysusers.d/30-rpmostree-pkg-*onepassword*); printf "%s\n" "${f[@]}"; test ${#f[@]} -eq 0'
+# A fresh install keeps the image's /etc/group, and sysusers never renumbers a
+# group that exists: any entry here leaves its pinned GID above nameless.
+check 'image /etc/group has no 1Password groups' '! grep "^onepassword" /etc/group'
 check 'no 1Password repo left behind'           '! test -e /etc/yum.repos.d/1password.repo'
 
 # This container's /var is empty, like a fresh install's first boot: run the
