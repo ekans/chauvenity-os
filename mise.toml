@@ -7,7 +7,7 @@
 
 [tools]
 # Boots the built image in a VM without root.
-"github:bootc-dev/bcvk" = "0.19.0"
+"github:bootc-dev/bcvk" = "0.21.0"
 
 [env]
 # Single source of truth for the image reference used by all tasks below.
