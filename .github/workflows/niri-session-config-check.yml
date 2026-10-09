@@ -35,7 +35,7 @@ jobs:
     container:
       # Must track the Fedora release the base image is built on, so the
       # niri and quickshell here are the ones the image ships.
-      image: registry.fedoraproject.org/fedora:44@sha256:ba35579e107f26a4c2c000390fb3ff549f3858a9584a6b5a35f7fa51f54de309
+      image: registry.fedoraproject.org/fedora:44@sha256:8ade22c0f76f6b2f0892290b1fb39fa1bda1566ba6e276a2ed427f45589c159b
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
