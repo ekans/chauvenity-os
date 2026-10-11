@@ -21,6 +21,15 @@ Built on [bluefin-dx](https://github.com/ublue-os/bluefin) (stable), the develop
 ### Browser
 - **Brave** — privacy-focused browser
 
+### Tailscale tray icon
+`tailscale systray` starts with every graphical session, from the systemd user
+unit `tailscale-systray.service`. Tailscale itself comes from bluefin-dx. GNOME
+shows the icon through bluefin's AppIndicator extension. The niri bar shipped
+here has no tray, so under niri the icon shows only if something else hosts
+one. A unit made with `tailscale configure systray` in `~/.config/systemd/user`
+replaces the image's; delete it to use the image's. To turn the icon off:
+`systemctl --user mask tailscale-systray.service`.
+
 ### Erlang/OTP Build Dependencies
 - autoconf, automake
 - ncurses-devel, wxBase, wxGTK-devel

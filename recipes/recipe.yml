@@ -34,10 +34,20 @@ modules:
   # Also creates /var/opt before BlueBuild links the /opt apps into it
   # (files/system/usr/lib/tmpfiles.d), so they exist on a fresh install's
   # first boot.
+  #
+  # Also carries tailscale-systray.service, the Tailscale tray icon, under
+  # usr/lib/systemd/user.
   - type: files
     files:
       - source: system
         destination: /
+
+  # Start the Tailscale tray icon in every user's graphical session
+  # (systemctl --global enable).
+  - type: systemd
+    user:
+      enabled:
+        - tailscale-systray.service
 
   - type: signing
 
