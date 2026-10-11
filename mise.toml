@@ -24,7 +24,7 @@ VM_CONNECT = "qemu:///session"
 description = "Static checks, no build: recipe schema, shell scripts, module order"
 run = [
   "bluebuild validate $RECIPE",
-  "shellcheck scripts/*.sh test/*.sh files/scripts/*.sh",
+  "shellcheck scripts/*.sh test/*.sh files/scripts/*.sh files/system/usr/bin/niri-sandbox",
   # initramfs regenerates from what the modules before it installed.
   '''yq -e '.modules[-1].type == "initramfs"' $RECIPE >/dev/null 2>&1 || { echo "initramfs must stay the last module in $RECIPE" >&2; exit 1; }''',
 ]

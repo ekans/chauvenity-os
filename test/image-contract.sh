@@ -78,4 +78,8 @@ check 'chezmoi units enabled' 'systemctl --global is-enabled chezmoi-init.servic
 # D-Bus-activatable would take the name whenever the bar is down.
 check 'nothing D-Bus-activates a notification daemon' '! grep -lsx "Name=org.freedesktop.Notifications" /usr/share/dbus-1/services/*.service'
 
+# /usr/bin/niri-sandbox runs niri inside `mutter --headless`. mutter comes from
+# the bluefin base, so this goes red if upstream drops it.
+check 'niri-sandbox dependencies exist' 'for c in mutter niri dbus-daemon systemd-run; do command -v $c >/dev/null || { echo "no $c"; exit 1; }; done'
+
 exit $fail
