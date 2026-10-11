@@ -53,8 +53,15 @@ goes through `xdg-desktop-portal-gnome`, the same portal GNOME uses, because
 niri implements the `org.gnome.Mutter.ScreenCast` interface. `Mod+Shift+/`
 lists the main keybinds.
 
-The bar shows this output's workspaces, the focused window's title, volume,
-battery and the clock.
+The bar shows this output's workspaces, the focused window's title, a
+`caffeine` toggle, volume, battery and the clock.
+
+`caffeine` does what GNOME's Caffeine extension does. Click it and it lights
+up. While it is lit, the screen neither locks nor blanks on idle. It works
+through a Wayland idle inhibitor held by the bar, so it stops whatever watches
+niri for idle, not just the shipped swayidle. Closing the lid or suspending by
+hand still locks and suspends. It starts off at every login and whenever the
+bar restarts.
 
 No notification daemon is installed: notifications are left to your own copy
 of the bar (see below), which serves `org.freedesktop.Notifications` with

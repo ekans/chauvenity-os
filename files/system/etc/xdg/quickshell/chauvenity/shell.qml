@@ -102,6 +102,13 @@ ShellRoot {
         onTriggered: niriEvents.running = true
     }
 
+    // --- caffeine -----------------------------------------------------------
+    // While on, every bar holds a Wayland idle inhibitor, so niri stops
+    // reporting the session idle and swayidle neither locks nor blanks it.
+    // Sleep is untouched: closing the lid or `systemctl suspend` still locks
+    // and suspends, and a crashed bar drops the inhibitor with it.
+    property bool caffeine: false
+
     // --- services -----------------------------------------------------------
 
     SystemClock {
@@ -136,6 +143,11 @@ ShellRoot {
                 top: true
                 left: true
                 right: true
+            }
+
+            IdleInhibitor {
+                window: bar
+                enabled: root.caffeine
             }
 
             // Left: workspace indices.
@@ -207,12 +219,25 @@ ShellRoot {
                 font.pixelSize: 12
             }
 
-            // Right: volume, battery, clock.
+            // Right: caffeine, volume, battery, clock.
             Row {
                 anchors.right: parent.right
                 anchors.rightMargin: 10
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 12
+
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "caffeine"
+                    color: root.caffeine ? root.accentColor : root.dimColor
+                    font.pixelSize: 12
+                    font.bold: root.caffeine
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: root.caffeine = !root.caffeine
+                    }
+                }
 
                 Text {
                     id: volumeText
