@@ -103,6 +103,21 @@ bar no longer receives changes made to the image's copy.
 > own binds are gone, and its terminal bind (`Mod+T`, alacritty) does nothing on
 > this image. The lock screen and other session services keep running.
 
+#### Testing without a window
+
+A nested niri on your live session opens a window and steals your focus.
+`niri-sandbox` runs niri inside `mutter --headless` instead, so nothing is
+displayed. It is for trying a niri or Quickshell change, by hand or from an
+agent. `NIRI_SANDBOX=name` keeps parallel sandboxes apart.
+
+```bash
+niri-sandbox up -c ~/.config/niri/config.kdl   # start it, or reload a live one
+niri-sandbox spawn qs -c chauvenity            # start the bar inside it
+niri-sandbox run niri msg layers               # talk to it, as a client
+niri-sandbox shot /tmp/bar.png                 # look at it
+niri-sandbox down                              # stop everything it started
+```
+
 #### How the session starts
 
 The compositor comes from the `niri` RPM's own

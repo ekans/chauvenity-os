@@ -1,0 +1,167 @@
+#!/usr/bin/env bash
+# A niri session that nothing displays, for testing niri and Quickshell changes
+# without opening a window on the live session. niri's winit backend runs
+# inside `mutter --headless`, in one transient systemd user service.
+#   niri-sandbox up [-c CONFIG]   start it, or reconfigure it live (idempotent)
+#   niri-sandbox spawn CMD...     start CMD inside it, e.g. qs -c chauvenity
+#   niri-sandbox run CMD...       run CMD in the foreground as a client of it
+#   niri-sandbox shot [PATH]      screenshot it and print the file's path
+#   niri-sandbox down             stop it and remove its files
+# Every command but `down` starts the sandbox first if it is not up.
+# NIRI_SANDBOX names it (default: default); parallel agents use distinct names.
+# `down` is the only teardown: it stops the unit, which holds every process.
+set -euo pipefail
+
+usage() {
+  sed -n '2,/^set -/{/^set -/!s/^# \{0,1\}//p}' "$0" >&2
+  exit 2
+}
+
+name=${NIRI_SANDBOX:-default}
+[[ $name =~ ^[A-Za-z0-9_-]+$ ]] || { echo "niri-sandbox: bad NIRI_SANDBOX '$name'" >&2; exit 2; }
+# Not $XDG_RUNTIME_DIR: inside the sandbox that is $dir itself.
+dir=/run/user/$(id -u)/niri-sandbox/$name
+unit=niri-sandbox-$name.service
+self=$(realpath "$0")
+
+# The single table of what a client of the sandbox sees. The unit gets the
+# static part too, since niri hands its own environment to what it spawns.
+static_env() {
+  printf '%s\n' \
+    "XDG_RUNTIME_DIR=$dir" \
+    "DBUS_SESSION_BUS_ADDRESS=unix:path=$dir/bus" \
+    "XDG_STATE_HOME=$dir/state" \
+    "PIPEWIRE_RUNTIME_DIR=/run/user/$(id -u)"
+}
+
+client_env() {
+  local sock display
+  sock=$(compgen -G "$dir/niri.*.sock" | head -n1) || true
+  [[ -n $sock ]] || { echo "niri-sandbox: no niri socket in $dir" >&2; return 1; }
+  display=${sock##*/}
+  display=${display#niri.}
+  display=${display%.*.sock}
+  local -a e
+  mapfile -t e < <(static_env)
+  exec env -u DISPLAY -u WAYLAND_SOCKET "${e[@]}" \
+    "WAYLAND_DISPLAY=$display" "NIRI_SOCKET=$sock" "$@"
+}
+
+# Subshell, so client_env's exec leaves this script alone.
+sandbox() ( client_env "$@" )
+
+# Killing the unit leaves gvfs' and the portals' FUSE mounts behind, and rm cannot
+# remove a dead mount.
+wipe_dir() {
+  local mnt
+  while read -r mnt; do
+    fusermount3 -u -z "$mnt" 2>/dev/null || true
+  done < <(awk -v d="$dir/" 'index($2, d) == 1 { print $2 }' /proc/self/mounts)
+  rm -rf "$dir"
+}
+
+is_up() { systemctl --user is-active --quiet "$unit"; }
+
+up() {
+  local config='' opt
+  OPTIND=1
+  while getopts c: opt; do
+    case $opt in
+      c) config=$(realpath -e -- "$OPTARG") ;;
+      *) usage ;;
+    esac
+  done
+  local fresh=0
+  is_up || fresh=1
+
+  if ((fresh)); then
+    wipe_dir
+    mkdir -p "${dir%/*}"
+    mkdir -m 700 "$dir"
+    mkdir "$dir/state"
+  fi
+
+  # A bare `up` on a live sandbox must not undo an earlier `up -c`.
+  if ((fresh)) || [[ -n $config ]]; then
+    if [[ -z $config ]]; then
+      config=${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl
+      [[ -f $config ]] || config=/etc/niri/config.kdl
+    fi
+    printf 'include "%s"\nhotkey-overlay { skip-at-startup; }\n' "$config" >"$dir/config.kdl.new"
+    # The running niri watches config.kdl and reloads when it changes.
+    if cmp -s "$dir/config.kdl.new" "$dir/config.kdl" 2>/dev/null; then
+      rm "$dir/config.kdl.new"
+    else
+      mv "$dir/config.kdl.new" "$dir/config.kdl"
+    fi
+  fi
+
+  if ((fresh)); then
+    # The user manager's environment carries the real WAYLAND_DISPLAY, DISPLAY
+    # and NIRI_SOCKET; _session clears them.
+    local -a e=(-E "NIRI_SANDBOX=$name") kv
+    while read -r kv; do e+=(-E "$kv"); done < <(static_env)
+    systemd-run --user --unit="${unit%.service}" --collect --quiet "${e[@]}" -- "$self" _session
+  fi
+
+  local i
+  for ((i = 0; i < 150; i++)); do
+    sandbox niri msg version >/dev/null 2>&1 && break
+    sleep 0.1
+  done
+  if ((i == 150)); then
+    journalctl --user -u "$unit" -n 30 --no-pager >&2 || true
+    echo "niri-sandbox: $name did not come up in 15 s" >&2
+    exit 1
+  fi
+}
+
+# Runs inside the unit.
+session() {
+  unset DISPLAY WAYLAND_SOCKET NIRI_SOCKET
+  dbus-daemon --session --nofork --address="unix:path=$dir/bus" &
+  until [[ -S $dir/bus ]]; do sleep 0.1; done
+  mutter --headless --no-x11 --wayland-display=parent --virtual-monitor 1280x800 &
+  local mutter=$!
+  until [[ -S $dir/parent ]]; do
+    kill -0 "$mutter" 2>/dev/null || { echo "niri-sandbox: mutter died" >&2; exit 1; }
+    sleep 0.1
+  done
+  # No --session: that would import this environment into the user's systemd and D-Bus.
+  WAYLAND_DISPLAY=parent exec niri -c "$dir/config.kdl"
+}
+
+shot() {
+  local path=${1:-$dir/shot-$(date +%Y%m%d-%H%M%S).png} i
+  path=$(realpath -m -- "$path")
+  rm -f "$path"
+  sandbox niri msg action screenshot-screen --show-pointer false --path "$path"
+  for ((i = 0; i < 50; i++)); do
+    [[ -s $path ]] && { echo "$path"; return; }
+    sleep 0.1
+  done
+  echo "niri-sandbox: no screenshot at $path after 5 s" >&2
+  exit 1
+}
+
+down() {
+  if [[ $(systemctl --user show -p LoadState --value "$unit" 2>/dev/null) == loaded ]]; then
+    systemctl --user stop "$unit"
+  fi
+  wipe_dir
+}
+
+cmd=${1:-}
+[[ -n $cmd ]] || usage
+shift
+case $cmd in
+  up) up "$@"; echo "niri-sandbox $name: unit $unit, dir $dir" ;;
+  _session) session ;;
+  spawn | run)
+    (($#)) || usage
+    up
+    if [[ $cmd == spawn ]]; then sandbox niri msg action spawn -- "$@"; else client_env "$@"; fi ;;
+  shot) up; shot "$@" ;;
+  down) down ;;
+  *) usage ;;
+esac
