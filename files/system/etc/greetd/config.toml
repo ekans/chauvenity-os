@@ -1,0 +1,15 @@
+# greetd, the display manager: it replaces GDM (gdm.service stays installed,
+# disabled). The greeter is the Quickshell face in
+# /etc/xdg/quickshell/chauvenity-greeter, which greetd's own `greetd` user runs
+# inside a minimal niri because Quickshell's layer-shell needs a compositor.
+#
+# To get GDM back, from a TTY (Ctrl+Alt+F3):
+#   sudo systemctl disable greetd.service && sudo systemctl enable gdm.service
+#   sudo systemctl reboot
+# See the README, "Getting GDM back".
+[terminal]
+vt = 1
+
+[default_session]
+command = "niri -c /etc/greetd/niri.kdl"
+user = "greetd"

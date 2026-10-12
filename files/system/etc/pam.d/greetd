@@ -1,0 +1,30 @@
+#%PAM-1.0
+# greetd's login, from the greetd package's own, with two changes.
+#
+# password-auth where the package has system-auth: this machine's system-auth
+# has `auth sufficient pam_fprintd.so` first, which would make the login wait
+# for a finger before it asks for the password. password-auth has no fprintd.
+# A fingerprint cannot unlock gnome-keyring in any case.
+#
+# The pam_gnome_keyring lines are the ones /etc/pam.d/gdm-password has, so the
+# login password unlocks the keyring as it did under GDM, and the kwallet
+# lines are gone.
+auth       substack    password-auth
+auth       optional    pam_gnome_keyring.so
+auth       include     postlogin
+
+account    required    pam_sepermit.so
+account    required    pam_nologin.so
+account    include     password-auth
+
+password   substack    password-auth
+-password  optional    pam_gnome_keyring.so use_authtok
+
+session    required    pam_selinux.so close
+session    required    pam_loginuid.so
+session    required    pam_selinux.so open
+session    optional    pam_keyinit.so force revoke
+session    required    pam_namespace.so
+session    include     password-auth
+session    optional    pam_gnome_keyring.so auto_start
+session    include     postlogin
