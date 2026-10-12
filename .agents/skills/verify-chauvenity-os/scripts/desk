@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+# Drives this checkout's niri session inside niri-sandbox, for verification.
+# Every command acts on the sandbox named $NIRI_SANDBOX (default: $BB_THREAD_ID),
+# never on the live session, and on the files of the checkout this script is in.
+#   desk bar                  sandbox on this checkout's niri config + its bar
+#   desk greeter [PASSWORD]   sandbox + a fake greetd + this checkout's greeter
+#   desk doctor               read-only: is this sandbox worth driving?
+#   desk run CMD...           CMD as a client of the sandbox (niri msg, wtype, qs)
+#   desk shot NAME            screenshot to $OUT/NAME.png
+#   desk state NAME           niri's workspaces, windows, layers to $OUT/NAME.json
+#   desk log NAME             the Quickshell instances' logs to $OUT/NAME.log
+#   desk down                 stop the sandbox and the fake greetd; keeps $OUT
+# OUT is $VERIFY_OUT, default ~/.local/state/verify-chauvenity-os/<sandbox>.
+set -euo pipefail
+
+usage() {
+  sed -n '2,/^set -/{/^set -/!s/^# \{0,1\}//p}' "$0" >&2
+  exit 2
+}
+
+root=$(cd "$(dirname "$(realpath "$0")")/../../../.." && pwd)
+name=${NIRI_SANDBOX:-${BB_THREAD_ID:-verify}}
+export NIRI_SANDBOX=$name
+out=${VERIFY_OUT:-${XDG_STATE_HOME:-$HOME/.local/state}/verify-chauvenity-os/$name}
+niri_config=$root/files/system/etc/niri/config.kdl
+bar_dir=$root/files/system/etc/xdg/quickshell/chauvenity
+greeter_dir=$root/files/system/etc/xdg/quickshell/chauvenity-greeter
+# The fake greetd lives in ekans/dotfiles, which chezmoi applies here. node
+# only runs it as a script under its real path, not through chezmoi's symlink.
+fake_greetd=${FAKE_GREETD:-$HOME/.config/quickshell/chauvenity-greeter/tests/fake-greetd.mjs}
+greetd_unit=verify-greetd-$name.service
+run_dir=/run/user/$(id -u)
+sock_dir=$run_dir/verify-greetd-$name
+# niri-sandbox's own dir: its config.kdl and Quickshell's logs.
+sb_dir=$run_dir/niri-sandbox/$name
+
+if [[ -n ${NIRI_SANDBOX_BIN:-} ]]; then
+  sb=$NIRI_SANDBOX_BIN
+elif command -v niri-sandbox >/dev/null; then
+  sb=niri-sandbox
+else
+  sb=$root/files/system/usr/bin/niri-sandbox
+fi
+
+# Waits for a layer-shell surface with this namespace, the sign a Quickshell
+# window is on screen.
+wait_layer() {
+  local i
+  for ((i = 0; i < 100; i++)); do
+    "$sb" run niri msg --json layers 2>/dev/null | jq -e --arg ns "$1" 'any(.[]; .namespace == $ns)' >/dev/null && return
+    sleep 0.1
+  done
+  echo "desk: no '$1' layer after 10 s; see: desk log failed-start" >&2
+  exit 1
+}
+
+# Always with -c: on a stopped sandbox, niri-sandbox's spawn and run start it
+# on the user's own ~/.config/niri/config.kdl instead.
+up() { "$sb" up -c "$niri_config" >/dev/null; }
+
+# run, shot and state on a stopped sandbox would start an empty one and
+# screenshot that.
+need_up() {
+  systemctl --user is-active --quiet "niri-sandbox-$name.service" && return
+  echo "desk: sandbox $name is not running: run 'desk bar' or 'desk greeter' first" >&2
+  exit 1
+}
+
+# Whether a Quickshell instance of this config dir already runs in the sandbox,
+# so a second `desk bar` does not stack a second bar on the first.
+qs_running() {
+  "$sb" run qs list --all 2>/dev/null | grep -qxF "  Config path: $1/shell.qml"
+}
+
+bar() {
+  up
+  qs_running "$bar_dir" || "$sb" spawn qs -p "$bar_dir"
+  wait_layer quickshell
+  echo "bar up in sandbox $name; evidence goes to $out"
+}
+
+greeter() {
+  local password=${1:-hunter2} script
+  script=$(realpath -e -- "$fake_greetd") || { echo "desk: no fake greetd at $fake_greetd (set FAKE_GREETD)" >&2; exit 1; }
+  mkdir -p "$out"
+  if ! systemctl --user is-active --quiet "$greetd_unit"; then
+    rm -rf "$sock_dir"
+    mkdir -m 700 "$sock_dir"
+    systemd-run --user --unit="${greetd_unit%.service}" --collect --quiet -- \
+      node "$script" --socket "$sock_dir/greetd.sock" --password "$password" \
+      --log "$out/greetd.log" --launch-delay 3000
+    local i
+    for ((i = 0; i < 50; i++)); do [[ -S $sock_dir/greetd.sock ]] && break; sleep 0.1; done
+    [[ -S $sock_dir/greetd.sock ]] || { journalctl --user -u "$greetd_unit" -n 20 --no-pager >&2; exit 1; }
+  fi
+  up
+  qs_running "$greeter_dir" || "$sb" spawn env GREETD_SOCK="$sock_dir/greetd.sock" qs -p "$greeter_dir"
+  wait_layer chauvenity-greeter
+  echo "greeter up in sandbox $name, password '$password'; greetd's requests go to $out/greetd.log"
+}
+
+doctor() {
+  local bad=0
+  echo "checkout   $root ($(git -C "$root" rev-parse --short HEAD 2>/dev/null)$(git -C "$root" diff --quiet 2>/dev/null || echo ', dirty'))"
+  echo "sandbox    $name, via $sb"
+  if ! systemctl --user is-active --quiet "niri-sandbox-$name.service"; then
+    echo "FAIL       unit niri-sandbox-$name.service is not running: run 'desk bar' or 'desk greeter'"
+    exit 1
+  fi
+  echo "niri       $("$sb" run niri msg version 2>&1 | head -n1)"
+  local included
+  included=$(sed -n 's/^include "\(.*\)"$/\1/p' "$sb_dir/config.kdl" 2>/dev/null)
+  if [[ $included == "$niri_config" ]]; then
+    echo "config     $included"
+  else
+    echo "FAIL       sandbox runs '$included', not this checkout's $niri_config"
+    bad=1
+  fi
+  echo "qs         $("$sb" run qs list --all 2>&1 | sed -n 's/^ *Config path: //p' | paste -sd' ' || true)"
+  "$sb" run qs list --all 2>/dev/null | sed -n 's/^ *Config path: //p' | while read -r p; do
+    [[ $p == "$root"/* ]] || echo "WARN       a Quickshell instance runs $p, outside this checkout"
+  done
+  echo "layers     $("$sb" run niri msg --json layers | jq -r '[.[].namespace] | join(" ")')"
+  if systemctl --user is-active --quiet "$greetd_unit"; then
+    echo "greetd     fake, $sock_dir/greetd.sock"
+  else
+    echo "greetd     none (the greeter shows the error state on Enter)"
+  fi
+  echo "evidence   $out"
+  exit "$bad"
+}
+
+shot() {
+  [[ -n ${1:-} ]] || usage
+  mkdir -p "$(dirname "$out/$1")"
+  "$sb" shot "$out/$1.png"
+}
+
+state() {
+  [[ -n ${1:-} ]] || usage
+  mkdir -p "$(dirname "$out/$1")"
+  {
+    printf '{"workspaces":'; "$sb" run niri msg --json workspaces
+    printf ',"windows":'; "$sb" run niri msg --json windows
+    printf ',"layers":'; "$sb" run niri msg --json layers
+    printf '}'
+  } | jq . >"$out/$1.json"
+  echo "$out/$1.json"
+}
+
+# Quickshell writes its logs inside the sandbox's runtime dir, which `down`
+# deletes, so copy them out before then.
+log() {
+  [[ -n ${1:-} ]] || usage
+  mkdir -p "$(dirname "$out/$1")"
+  local f=$out/$1.log
+  : >"$f"
+  local l
+  for l in "$sb_dir"/quickshell/by-id/*/log.qslog; do
+    [[ -f $l ]] || continue
+    echo "=== $l" >>"$f"
+    "$sb" run qs log "$l" 2>&1 | sed 's/\x1b\[[0-9;]*m//g' >>"$f" || true
+  done
+  echo "$f"
+}
+
+down() {
+  systemctl --user stop "$greetd_unit" 2>/dev/null || true
+  rm -rf "$sock_dir"
+  "$sb" down
+  echo "sandbox $name stopped; evidence kept in $out"
+}
+
+cmd=${1:-}
+[[ -n $cmd ]] || usage
+shift
+case $cmd in
+  bar) bar ;;
+  greeter) greeter "$@" ;;
+  doctor) doctor ;;
+  run) (($#)) || usage; need_up; "$sb" run "$@" ;;
+  shot) need_up; shot "$@" ;;
+  state) need_up; state "$@" ;;
+  log) log "$@" ;;
+  down) down ;;
+  *) usage ;;
+esac
