@@ -34,11 +34,14 @@ Built on [bluefin-dx](https://github.com/ublue-os/bluefin) (stable), the develop
 
 ### Desktop Sessions
 
-GDM offers two sessions. **GNOME** (from bluefin-dx) is unchanged and remains
-the default — GDM remembers the last session per user in AccountsService, and
-nothing here touches a GNOME package, a GNOME default or a GDM setting.
+The display manager is [greetd](https://sr.ht/~kennylevinsen/greetd/), not GDM,
+and its greeter is the niri session's lock screen with a login behind it (see
+[Login screen](#login-screen)). It offers two sessions. **GNOME** (from
+bluefin-dx) is unchanged: no GNOME package, default or setting is touched, and
+`gdm` is still installed, only disabled. The greeter offers niri first and GNOME
+one Tab away; it does not remember the last session.
 
-**Niri** is a second session: the [niri](https://github.com/YaLTeR/niri)
+**Niri** is the second session: the [niri](https://github.com/YaLTeR/niri)
 scrolling-tiling Wayland compositor with a
 [Quickshell](https://quickshell.org/) bar. Its point is live editing — niri
 re-reads its config and Quickshell reloads its QML the moment either file is
@@ -135,7 +138,52 @@ systemctl --user mask chauvenity-polkit-agent.service
 The
 [`niri-session-config-check`](./.github/workflows/niri-session-config-check.yml)
 workflow runs `niri validate` and `qmllint` on every PR that touches the
-session.
+session or the greeter.
+
+### Login screen
+
+greetd runs `niri -c /etc/greetd/niri.kdl` as its `greetd` user, and that niri
+runs one thing, `qs -c chauvenity-greeter`, then quits with it: greetd expects
+the greeter to exit once it has started the session. Quickshell's layer-shell
+needs a compositor, which is why the greeter is not under `cage`. The screen is
+the lock screen's face (`ducatore · niri` where the lock shows the
+fingerprint). Tab picks the session, Enter logs in, Ctrl+Alt+Del opens suspend,
+reboot and power off. There is no fingerprint at login, since a finger cannot
+unlock the keyring and a password can.
+
+| File | What it does |
+| --- | --- |
+| [`etc/greetd/config.toml`](./files/system/etc/greetd/config.toml) | The default session: the greeter's niri, as `greetd` on VT 1. |
+| [`etc/greetd/niri.kdl`](./files/system/etc/greetd/niri.kdl) | That niri: no binds, no bar, the system keyboard layout, starts the greeter and quits with it. |
+| [`etc/pam.d/greetd`](./files/system/etc/pam.d/greetd) | The package's login stack on `password-auth`, plus `pam_gnome_keyring` so the login password unlocks the keyring. |
+| [`etc/xdg/quickshell/chauvenity-greeter`](./files/system/etc/xdg/quickshell/chauvenity-greeter) and `chauvenity-lock` | The greeter and the lock face it imports. They have to stay side by side: `chauvenity-greeter/lock` is a symlink to `../chauvenity-lock`, because Quickshell refuses imports from outside a config folder. |
+| [`usr/lib/tmpfiles.d/10-chauvenity-greetd.conf`](./files/system/usr/lib/tmpfiles.d/10-chauvenity-greetd.conf) | Creates the greeter user's home, which a fresh install's empty `/var` lacks, and masks the `chezmoi-init` unit the chezmoi module enables for every user, so it does not clone the dotfiles at the login screen. |
+| [`usr/lib/systemd/system-preset/00-chauvenity-greetd.preset`](./files/system/usr/lib/systemd/system-preset/00-chauvenity-greetd.preset) | Keeps greetd the display manager on a fresh install, whose first boot presets would otherwise enable GDM. |
+| [`recipes/greetd.yml`](./recipes/greetd.yml) | Installs `greetd` and `greetd-selinux`, enables greetd and disables GDM. |
+
+Why each choice:
+
+- **`password-auth`, not `system-auth`.** On a machine with a fingerprint reader enrolled, `authselect` puts `auth sufficient pam_fprintd.so` first in `system-auth`, and a login through it would wait for a finger before it asked for the password. GDM's own `gdm-password` uses `password-auth` too.
+- **SELinux.** greetd has no domain of its own. `greetd-selinux` labels `/usr/bin/greetd`, `/etc/greetd` and `/var/lib/greetd` as GDM's `xdm_*` types, so greetd and its greeter run in `xdm_t` as GDM does. `test/image-contract.sh` checks the labels and `mise run vm` runs with SELinux enforcing.
+- **Power actions.** The greeter runs `systemctl suspend|reboot|poweroff` as the `greetd` user. logind's default policy lets an active local session do all three without a prompt; the image adds no polkit rule.
+- **The greeter is a copy.** It is written and tested in [ekans/dotfiles](https://github.com/ekans/dotfiles) (`quickshell/chauvenity-greeter`, with a fake greetd and `tests/proof.sh`), but greetd's `greetd` user has no home for chezmoi to apply it to. `scripts/sync-greeter.sh DOTFILES_CHECKOUT` copies exactly the files the greeter loads. Re-run it after the greeter changes. The user it logs in is `ducatore`, set in `greeter.mjs` (`CHAUVENITY_GREETER_USER` overrides it).
+
+#### Getting GDM back
+
+If the greeter does not come up (black screen, or it keeps restarting), the
+other TTYs are still there: **Ctrl+Alt+F3** (niri switches VTs itself), log in,
+then
+
+```bash
+sudo systemctl disable greetd.service && sudo systemctl enable gdm.service
+sudo systemctl reboot
+```
+
+If you cannot get a TTY either, pick the previous deployment in the boot menu
+(GRUB lists it below the new one), or from any shell
+`sudo rpm-ostree rollback && systemctl reboot`. To make GDM permanent, reverse
+[`recipes/greetd.yml`](./recipes/greetd.yml) and delete the preset and
+`etc/greetd`, `etc/pam.d/greetd` and the two greeter folders from `files/`.
 
 ### Dotfiles
 Managed via [chezmoi](https://www.chezmoi.io/) from [ekans/dotfiles](https://github.com/ekans/dotfiles).
@@ -192,7 +240,7 @@ mise run generate-iso    # generate a bootable ISO from the published image
 Run `mise run verify`; it stops at the first failing step and exits non-zero. Every check prints one line, `ok   <name>` or `FAIL <name>` followed by the evidence (the command's output, or `systemctl status` of a failed unit), so a person or an agent can tell what broke without re-running anything.
 
 - `test:contract` runs [`test/image-contract.sh`](./test/image-contract.sh), the same script the weekly [`image-contract`](./.github/workflows/image-contract.yml) workflow runs on the published image. Packages added to a recipe's `dnf` module are checked automatically; anything else a change promises needs a `check` line there.
-- `test:boot` ([`test/boot.sh`](./test/boot.sh)) boots the container directly, which is fast but not a real install: SELinux is off and `kargs.d` is not applied. Use `mise run vm` ([`scripts/vm.sh`](./scripts/vm.sh)) for changes to boot, kargs or SELinux, and to look at the desktop.
+- `test:boot` ([`test/boot.sh`](./test/boot.sh)) boots the container directly, which is fast but not a real install: SELinux is off and `kargs.d` is not applied. It checks that greetd, not GDM, is the display manager that runs. Use `mise run vm` ([`scripts/vm.sh`](./scripts/vm.sh)) for changes to boot, kargs, SELinux, greetd or PAM, and to look at the desktop.
 
 The local build differs from CI: it is not rechunked or signed, and its signature policy trusts `cosign.pub` for `localhost/chauvenity-os` rather than `ghcr.io/ekans/chauvenity-os`.
 
