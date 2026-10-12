@@ -82,4 +82,34 @@ check 'nothing D-Bus-activates a notification daemon' '! grep -lsx "Name=org.fre
 # the bluefin base, so this goes red if upstream drops it.
 check 'niri-sandbox dependencies exist' 'for c in mutter niri dbus-daemon systemd-run; do command -v $c >/dev/null || { echo "no $c"; exit 1; }; done'
 
+# greetd is the display manager (recipes/greetd.yml); gdm stays installed so
+# going back is `systemctl enable gdm`. display-manager.service is the alias
+# whichever of the two is enabled owns.
+check 'greetd is the display manager'   '[ "$(readlink -f /etc/systemd/system/display-manager.service)" = /usr/lib/systemd/system/greetd.service ]'
+check 'gdm is installed, not enabled'   'rpm -q gdm && ! systemctl is-enabled gdm.service'
+# A fresh install applies every preset at its first boot, and
+# 85-display-manager.preset enables gdm there. Without ours, which sorts first,
+# this ends on gdm.service. A copy of the units stands in for the new root.
+check 'a fresh install keeps greetd'    'r=$(mktemp -d); mkdir -p $r/usr/lib; cp -a /usr/lib/systemd $r/usr/lib/; systemctl --root=$r preset-all --preset-mode=full >/dev/null 2>&1; l=$(readlink $r/etc/systemd/system/display-manager.service); [ "$l" = /usr/lib/systemd/system/greetd.service ] || { echo "display-manager.service -> ${l:-nothing}"; exit 1; }'
+# greetd runs in GDM's SELinux domain: these are the labels greetd-selinux gives.
+check 'greetd has its SELinux labels'   'matchpathcon /usr/bin/greetd | grep -q xdm_exec_t && matchpathcon /etc/greetd/config.toml | grep -q xdm_etc_t'
+
+# The greeter: Quickshell config chauvenity-greeter, which imports the lock
+# screen's face through its lock -> ../chauvenity-lock symlink, so both folders
+# have to survive the files module side by side. It is read by the greetd user.
+check 'greetd starts the greeter in niri'   'grep -qx "command = \"niri -c /etc/greetd/niri.kdl\"" /etc/greetd/config.toml && grep -q "qs -c chauvenity-greeter" /etc/greetd/niri.kdl'
+check 'greeter niri config is valid'        'niri validate -c /etc/greetd/niri.kdl'
+check 'greeter keeps its lock symlink'      'd=/etc/xdg/quickshell/chauvenity-greeter; [ "$(readlink $d/lock)" = ../chauvenity-lock ] && test -f $d/lock/LockFace.qml'
+check 'the greetd user can read the greeter' 'getent passwd greetd >/dev/null && runuser -u greetd -- sh -c "cat /etc/xdg/quickshell/chauvenity-greeter/shell.qml /etc/xdg/quickshell/chauvenity-greeter/lock/LockFace.qml /etc/xdg/quickshell/chauvenity-greeter/lock/lock.mjs /etc/greetd/niri.kdl >/dev/null"'
+# tmpfiles creates the greeter user's home on a fresh install's empty /var, and
+# masks the chezmoi unit the chezmoi module enables for every user.
+check 'greeter home is created and chezmoi masked' 'r=$(mktemp -d); mkdir $r/etc; cp /etc/passwd /etc/group $r/etc/; systemd-tmpfiles --root=$r --create /usr/lib/tmpfiles.d/10-chauvenity-greetd.conf 2>&1; [ "$(readlink $r/var/lib/greetd/.config/systemd/user/chezmoi-init.service)" = /dev/null ] && [ "$(readlink $r/var/lib/greetd/.config/systemd/user/xdg-desktop-portal.service)" = /dev/null ]'
+check 'the greeter lists both sessions'     'for s in gnome niri; do test -f /usr/share/wayland-sessions/$s.desktop || { echo "no $s.desktop"; exit 1; }; done'
+check 'JetBrains Mono for the greeter clock' 'fc-list "JetBrains Mono" | grep -q .'
+
+# /etc/pam.d/greetd: password-auth, not system-auth (this machine's has
+# pam_fprintd first: the login would wait for a finger), and the keyring.
+check 'greetd PAM uses password-auth'       'pam=$(grep -v "^#" /etc/pam.d/greetd); ! grep -q "system-auth\|fprintd" <<<"$pam" && grep -qE "^auth +substack +password-auth" <<<"$pam"'
+check 'greetd PAM unlocks the keyring'      'grep -qE "^auth +optional +pam_gnome_keyring.so" /etc/pam.d/greetd && grep -qE "^session +optional +pam_gnome_keyring.so +auto_start" /etc/pam.d/greetd && test -e /usr/lib64/security/pam_gnome_keyring.so'
+
 exit $fail

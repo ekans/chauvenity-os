@@ -8,7 +8,13 @@ check 'boot finished' 's=$(timeout 300 systemctl is-system-running --wait); [ "$
 # hardware, and the ephemeral VM has no bootloader to update.
 check 'no failed units' 'failed=$(systemctl --failed --no-legend --plain | awk "{print \$1}" | grep -vxE "bootloader-update\.service|mcelog\.service"); for u in $failed; do systemctl status --no-pager -n 20 "$u"; done; [ -z "$failed" ]'
 check 'graphical.target reached' 'systemctl is-active graphical.target'
-check 'gdm running'              'systemctl is-active gdm.service'
+check 'greetd running'           'systemctl is-active greetd.service'
+check 'display-manager is greetd' '[ "$(systemctl show -p Id --value display-manager.service)" = greetd.service ]'
+check 'gdm not running'          '! systemctl is-active gdm.service'
+# niri has no output in a VM without 3D, so the greeter draws nothing here, but
+# it is started and stays up; what only a screen shows is in the README.
+check 'greeter runs as greetd'   'sleep 5; pgrep -u greetd -x niri >/dev/null && pgrep -u greetd -x qs >/dev/null'
+check 'greeter user manager is healthy' 'u=$(id -u greetd); test -d /var/lib/greetd; f=$(runuser -u greetd -- env XDG_RUNTIME_DIR=/run/user/$u systemctl --user --failed --no-legend --plain); echo "$f"; [ -z "$f" ]'
 
 # /opt apps live in /usr/lib/opt; tmpfiles links them into /var/opt at boot.
 check 'brave-browser runs from /opt' 'brave-browser --version'

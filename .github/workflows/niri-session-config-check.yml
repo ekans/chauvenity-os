@@ -1,14 +1,18 @@
-# Checks the niri session's shipped configuration without building the image.
+# Checks the niri session's and the greeter's shipped configuration without
+# building the image.
 #
-#   GREEN = niri accepts config.kdl, and every shipped .qml type-checks
-#           against the Quickshell the image actually installs.
-#   RED   = a change to the session would ship broken. For config.kdl that
-#           means niri starts on upstream's default config instead, without
-#           your binds and with a terminal bind (alacritty) that does nothing.
+#   GREEN = niri accepts config.kdl and the greeter's niri.kdl, and every
+#           shipped .qml (the bar, the greeter, the lock face it draws)
+#           type-checks against the Quickshell the image actually installs.
+#   RED   = a change would ship broken. For config.kdl that means niri starts
+#           on upstream's default config instead, without your binds and with a
+#           terminal bind (alacritty) that does nothing. For the greeter it
+#           means no login screen.
 #
 # Cheap enough to run on every PR that touches the config: one Fedora 44
-# container, no image build. It cannot tell you the session *looks* right, or
-# that the units start in the right order — only booting the image does that.
+# container, no image build. It cannot tell you the session *looks* right, that
+# the units start in the right order, or that greetd and PAM let you in — only
+# booting the image does that.
 # Nor whether `qs` starts on the pinned base's Qt: the image build checks that
 # itself, at the end of recipes/niri-session.yml.
 
@@ -20,6 +24,7 @@ on:
     paths: &session-paths
       - "files/system/etc/xdg/quickshell/**"
       - "files/system/etc/niri/**"
+      - "files/system/etc/greetd/**"
       - "files/system/usr/lib/systemd/user/**"
       - ".github/workflows/niri-session-config-check.yml"
   pull_request:
@@ -52,18 +57,22 @@ jobs:
         # niri validate exits 1 on a config it cannot parse.
         run: niri validate -c files/system/etc/niri/config.kdl
 
+      - name: Validate the greeter's niri config
+        run: niri validate -c files/system/etc/greetd/niri.kdl
+
       - name: Type-check every shipped QML file
-        working-directory: files/system/etc/xdg/quickshell/chauvenity
+        working-directory: files/system/etc/xdg/quickshell
         run: |
           status=0
-          for f in *.qml; do
+          for f in */*.qml; do
+            dir=${f%/*}
             # "PanelWindow is not creatable" is a known qmllint false positive
             # for Quickshell's window types; anything else is real.
-            out=$(qmllint-qt6 -I /usr/lib64/qt6/qml -I . "$f" 2>&1 \
+            out=$(cd "$dir" && qmllint-qt6 -I /usr/lib64/qt6/qml -I . "${f##*/}" 2>&1 \
                   | grep -E '^(Error|Warning)' \
                   | grep -v 'PanelWindow is not creatable') || true
             if [ -n "$out" ]; then
-              echo "::error file=files/system/etc/xdg/quickshell/chauvenity/$f::$out"
+              echo "::error file=files/system/etc/xdg/quickshell/$f::$out"
               status=1
             else
               echo "ok  $f"

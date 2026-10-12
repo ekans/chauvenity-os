@@ -1,0 +1,30 @@
+// The niri that greetd runs the greeter in, as the greetd user: no bar, no
+// binds, no session services, and not /etc/niri/config.kdl, which belongs to
+// the user's desktop. It starts the greeter and is done when the greeter is.
+//
+// greetd ends this process after it has started the user's session: the
+// greeter quits on a successful launch, and the line below takes niri with it.
+// It is also what happens if the greeter crashes, and greetd then starts the
+// greeter again. niri switches VTs itself, so Ctrl+Alt+F3 still gets you a
+// TTY whatever the greeter does.
+
+input {
+    keyboard {
+        xkb {
+            // Empty, as in /etc/niri/config.kdl: the layout comes from
+            // org.freedesktop.locale1, so the password is typed on the same
+            // keyboard layout as in the session.
+        }
+        numlock
+    }
+}
+
+layout {
+    background-color "#141318"
+}
+
+hotkey-overlay {
+    skip-at-startup
+}
+
+spawn-sh-at-startup "qs -c chauvenity-greeter; niri msg action quit --skip-confirmation"

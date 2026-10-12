@@ -14,12 +14,19 @@ modules:
     repository: "https://github.com/ekans/dotfiles"
     file-conflict-policy: replace
 
+  # The display manager: greetd with a Quickshell greeter, instead of GDM. Its
+  # login and greeter files are in the `files` module below. Before tools.yml on
+  # purpose: greetd's sysusers scriptlet runs systemd-sysusers over every
+  # sysusers.d file, so installed after install-1password.sh it writes the
+  # 1Password groups back into /etc/group (test/image-contract.sh checks).
+  - from-file: greetd.yml
+
   - from-file: tools.yml
   - from-file: erlang-deps.yml
   - from-file: phoenix-deps.yml
 
-  # Second desktop session: niri + Quickshell, listed next to GNOME in GDM.
-  # GNOME remains the default; nothing here touches it.
+  # Second desktop session: niri + Quickshell. The greeter offers it first and
+  # GNOME one Tab away; no GNOME package or GNOME setting is touched.
   - from-file: niri-session.yml
 
   # Select the fr keymap for the LUKS unlock prompt via rd.vconsole.keymap=fr
@@ -29,7 +36,12 @@ modules:
   #
   # Also carries the niri session's system defaults — /etc/niri/config.kdl and
   # /etc/xdg/quickshell/chauvenity/, both overridable from ~/.config — and the
-  # session's systemd user units under usr/lib/systemd/user.
+  # session's systemd user units under usr/lib/systemd/user. And greetd's:
+  # /etc/greetd, /etc/pam.d/greetd, the greeter in
+  # /etc/xdg/quickshell/chauvenity-greeter (+ chauvenity-lock), the greeter
+  # user's home (tmpfiles) and a preset that keeps greetd the display manager on
+  # a fresh install. This module has to stay
+  # after the dnf modules, since /etc/pam.d/greetd replaces the package's.
   #
   # Also creates /var/opt before BlueBuild links the /opt apps into it
   # (files/system/usr/lib/tmpfiles.d), so they exist on a fresh install's

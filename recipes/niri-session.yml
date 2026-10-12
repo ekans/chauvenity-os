@@ -1,4 +1,4 @@
-# niri + Quickshell desktop session, offered alongside GNOME in GDM.
+# niri + Quickshell desktop session, offered alongside GNOME in the greeter.
 #
 # Every package here but quickshell ships in the Fedora 44 repositories.
 # quickshell comes from errornointernet/quickshell, the COPR quickshell.org
@@ -20,7 +20,7 @@ modules:
       install-weak-deps: false
       packages:
         # The compositor. Ships /usr/share/wayland-sessions/niri.desktop (which
-        # is what makes GDM list the session), /usr/bin/niri-session and
+        # is what makes the greeter list the session), /usr/bin/niri-session and
         # /usr/lib/systemd/user/niri.service.
         - niri
         # Xwayland for the niri session. niri already hard-Requires it

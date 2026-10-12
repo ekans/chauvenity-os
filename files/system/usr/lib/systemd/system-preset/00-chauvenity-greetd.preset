@@ -1,0 +1,5 @@
+# greetd is the display manager, not GDM. 85-display-manager.preset enables
+# every display manager and the first one wins; a fresh install applies the
+# presets at its first boot, so this one has to sort before it.
+enable greetd.service
+disable gdm.service

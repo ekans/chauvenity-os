@@ -1,0 +1,28 @@
+# greetd as the display manager, in place of GDM, with the Quickshell greeter
+# from files/system/etc/xdg/quickshell/chauvenity-greeter. The greeter runs
+# inside the niri and quickshell that recipes/niri-session.yml installs.
+# gdm stays installed, disabled: switching back is `systemctl enable gdm`.
+#
+# Keep this before tools.yml: see the comment on it in recipe.yml.
+modules:
+  - type: dnf
+    install:
+      packages:
+        - greetd
+        # greetd has no SELinux domain of its own: this policy labels
+        # /usr/bin/greetd, /etc/greetd and /var/lib/greetd as GDM's xdm types, so
+        # greetd and its greeter run in xdm_t as gdm does. greetd only requires
+        # it conditionally (on selinux-policy-targeted); listing it makes the
+        # dependency visible.
+        - greetd-selinux
+
+  # `enable` replaces the /etc/systemd/system/display-manager.service symlink
+  # (it pointed at gdm.service) with one to greetd.service, which carries
+  # Alias=display-manager.service. Both are in files/system's preset too, for a
+  # fresh install's first boot.
+  - type: systemd
+    system:
+      enabled:
+        - greetd.service
+      disabled:
+        - gdm.service
