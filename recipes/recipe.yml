@@ -7,7 +7,7 @@ base-image: ghcr.io/ublue-os/bluefin-dx
 # lenient (unanchored) Tag parser accepting tag@digest. Renovate bumps the
 # digest (see .github/renovate.json5). Re-verify on CLI upgrades.
 # See docs/adr/0003-pin-base-digest-renovate.md.
-image-version: stable@sha256:425db37c0d8e2791b29a41a04cc744b8f17c707b3ceeb8c46bdc0b155ce14b7a
+image-version: stable@sha256:a41cf1ebc4b6718cab813f221b8394c963ed3f0777b52e19fe6c3784b15c52ed
 
 modules:
   - type: chezmoi
