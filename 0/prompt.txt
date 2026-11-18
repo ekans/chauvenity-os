@@ -1,0 +1,171 @@
+Read these first, in full, and follow them:
+
+- `/tmp/bb-provider-bridge-provider-claude-code-OGhMjQ/skills/bb-claude-skill-plugins-zFP9i9/8045f4d6b154b804/skills/poteto-mode/SKILL.md`
+- `AGENTS.md` at the repo root of your worktree
+- `.agents/skills/verify-chauvenity-os/features/greeter-login.md`
+
+# The user's goal
+
+The user is adding animated fireflies to their lock and login screens in
+ekans/dotfiles, in PR https://github.com/ekans/dotfiles/pull/23 (open, not
+merged). The login screen in chauvenity-os is a copy of the dotfiles greeter,
+made by `scripts/sync-greeter.sh` and committed under
+`files/system/etc/xdg/quickshell/`. They want this repo ready for that PR, so
+the next sync cannot ship a login screen that fails to load.
+
+# The problem, and its root cause
+
+`scripts/sync-greeter.sh` copies a hardcoded list of five files. PR #23 adds
+`chauvenity-lock/LockScene.qml`, `chauvenity-lock/Firefly.qml` and
+`chauvenity-lock/art/*.png`, which the new `LockFace.qml` uses. A sync with
+today's list copies the new `LockFace.qml` and leaves those behind, and
+Quickshell then fails with `LockScene is not a type`: no login screen at all,
+with nothing warning whoever ran the sync.
+
+The root cause is a category error in the script. QML loads these as
+**directories**, not as files: `chauvenity-greeter/GreeterFace.qml` says
+`import "lock"`, which makes every `.qml` file beside `LockFace.qml` a type.
+A per-file allow list cannot track a directory-wide import, so it goes stale
+silently. Making today's list longer would bring the trap back on the next
+file added.
+
+# What to build
+
+One file changes the behaviour: `scripts/sync-greeter.sh`. Rewrite it around
+the directory as the unit, with a load gate after the copy. Two parts, both
+needed, because each covers a class the other misses (measured, see below).
+
+## Part 1: copy the directory, name what stays behind
+
+Copy every file under `$src/chauvenity-greeter` and `$src/chauvenity-lock`
+(where `$src` is `DOTFILES_CHECKOUT/quickshell`), except these paths, each of
+which gets a one-line reason in the code:
+
+- `chauvenity-greeter/tests/*` and `chauvenity-lock/tests/*` — run from the
+  dotfiles checkout, never loaded by the greeter.
+- `chauvenity-lock/shell.qml` — the lock's own entry point. The greeter never
+  loads it, and `/etc/xdg` is an XDG config dir, so shipping it would make
+  `qs -c chauvenity-lock` resolve to an image config nothing in the image
+  starts.
+- `chauvenity-lock/lock.sh` — starts the user's lock session; the greeter
+  never runs it.
+- `chauvenity-lock/art/sprites.sh` — regenerates `art/*.png`, which ship
+  already drawn.
+
+Drift now runs in the safe direction: a file added to either directory ships
+without anyone touching this script, and shipping one extra file is harmless
+where missing one is fatal.
+
+Keep the existing check that `$src/chauvenity-greeter/lock` is a symlink to
+`../chauvenity-lock`, and keep recreating that symlink in the destination.
+`find -type f` does not follow it, so the lock directory is copied by its own
+pass; do not copy through the symlink. Files install with mode 644 as today
+(`install -D -m 644` handles the PNGs fine).
+
+## Part 2: load the copy before installing it
+
+Build into a staging directory (`mktemp -d`, removed by a trap), gate the
+staging tree, and only then replace `files/system/etc/xdg/quickshell/
+chauvenity-greeter` and `.../chauvenity-lock`. A failed gate must leave the
+repo's `files/` untouched and exit non-zero. Do not touch
+`files/system/etc/xdg/quickshell/chauvenity/`, which is the bar, not the
+greeter.
+
+The gate, measured on this machine today, exit code 255 in every case and
+0.1 s per run:
+
+    timeout 120 env -u WAYLAND_DISPLAY -u DISPLAY -u GREETD_SOCK \
+      QT_QPA_PLATFORM=offscreen qs -p "$stage/chauvenity-greeter" --no-color 2>&1
+
+Qt's offscreen platform has no layer-shell, so Quickshell refuses the
+greeter's `PanelWindow`. Everything before that has already run: every QML
+document the greeter reaches is compiled and every type and script resolved.
+So a complete tree produces exactly this, and nothing else:
+
+     ERROR: Failed to load configuration
+     ERROR:   caused by @shell.qml[211:9]: No PanelWindow backend loaded.
+
+while an incomplete one names what it could not reach, for example:
+
+     ERROR:   caused by @lock/LockFace.qml[76:5]: LockScene is not a type
+     ERROR:   caused by @greeter.mjs[-1:-1]: File not found
+
+Pass only when the log contains the `No PanelWindow backend loaded` line and
+no other `ERROR:` line besides the `Failed to load configuration` header. The
+exit code says nothing (255 either way), so read the log. On failure, print
+the whole log to stderr and say that nothing was installed.
+
+What the gate cannot catch, and must not be claimed to: a missing
+`art/*.png`. Measured — deleting `art/glow.png` still produces the clean
+`No PanelWindow backend loaded` log, because the window never maps and the
+image is never loaded. Part 1 is what covers that class. Say so in the
+script's header comment, honestly and in one sentence.
+
+## Part 3: the second hardcoded list
+
+`test/image-contract.sh:103` ("the greetd user can read the greeter") names
+three files by hand, so it would pass on a tree missing everything else.
+Change it to check that the greetd user can read **every** file under
+`/etc/xdg/quickshell/chauvenity-greeter/` and
+`/etc/xdg/quickshell/chauvenity-lock/`, so a newly shipped file is covered
+without editing the check. Match the file's existing `check '<name>' '<shell>'`
+style and keep the name short. Leave the other checks alone.
+
+## Docs
+
+`.agents/skills/verify-chauvenity-os/features/greeter-login.md:55` describes
+the sync in one line. Update it only if the rewrite makes it wrong. Do not
+start a new doc file.
+
+# Hard constraints
+
+- **Do not run the sync into the repo's `files/`.** PR #23 is not merged and
+  the image must not ship unmerged dotfiles code. `git status` must show no
+  change under `files/` when you are done. Test against a scratch destination
+  only.
+- Never `pkill`, `killall` or `pgrep -f`-then-kill `qs` or `niri`, not even
+  through `niri-sandbox run`. The sandbox shares the process list with the
+  user's live niri session; doing that killed their bar once already. Stop a
+  Quickshell instance with `qs kill -p <dir>`. The offscreen gate above exits
+  on its own and needs no kill.
+- Never start `qs` or any GUI app on the user's `WAYLAND_DISPLAY`. The
+  offscreen gate has `WAYLAND_DISPLAY` unset, which is why it is safe here.
+- Do not reformat or restructure the rest of the script beyond what the
+  rewrite needs.
+
+# Two dotfiles trees to test against, already cloned for you
+
+- `/tmp/greeter-sync-thr_cjwcg2c53u/dotfiles-main` — dotfiles `main`, no
+  `LockScene.qml`.
+- `/tmp/greeter-sync-thr_cjwcg2c53u/dotfiles-pr23` — PR #23's branch
+  `lock-and-login-14-fireflies-thr_x35b5jtbyd`.
+
+The script must work against both, because the order the two PRs land in is
+not settled. Do not write to those clones.
+
+# Success criteria
+
+1. `scripts/sync-greeter.sh /tmp/greeter-sync-thr_cjwcg2c53u/dotfiles-main`,
+   pointed at a scratch destination, produces exactly today's five files plus
+   the `lock` symlink, and nothing else. Verified by hand already: that is the
+   expected output.
+2. The same against `dotfiles-pr23` additionally produces `LockScene.qml`,
+   `Firefly.qml` and the four `art/*.png`, and no `art/sprites.sh`,
+   `shell.qml`, `lock.sh` or `tests/`.
+3. A tree with `LockScene.qml` removed makes the script exit non-zero, print
+   the QML error, and leave the destination unchanged.
+4. `bash -n scripts/sync-greeter.sh` and `shellcheck scripts/sync-greeter.sh`
+   (if shellcheck is installed) are clean.
+5. `git status --porcelain` shows changes only to `scripts/sync-greeter.sh`,
+   `test/image-contract.sh`, and the one doc line if you changed it.
+
+Make the destination overridable for testing, in the smallest way that works
+(an env var the script reads, documented in its header), so criteria 1 to 3
+run without touching `files/`. Do not add a flag parser.
+
+Commit your work on the current branch with a message in the repo's style
+(lower-case, `fix(...)` or `feat(...)`, a sentence that says what changed for
+whom). Do not open a PR and do not push.
+
+Report back: the diff you wrote, the three runs' output, and anything you
+found that the brief got wrong.
