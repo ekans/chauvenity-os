@@ -100,7 +100,7 @@ check 'greetd has its SELinux labels'   'matchpathcon /usr/bin/greetd | grep -q 
 check 'greetd starts the greeter in niri'   'grep -qx "command = \"niri -c /etc/greetd/niri.kdl\"" /etc/greetd/config.toml && grep -q "qs -c chauvenity-greeter" /etc/greetd/niri.kdl'
 check 'greeter niri config is valid'        'niri validate -c /etc/greetd/niri.kdl'
 check 'greeter keeps its lock symlink'      'd=/etc/xdg/quickshell/chauvenity-greeter; [ "$(readlink $d/lock)" = ../chauvenity-lock ] && test -f $d/lock/LockFace.qml'
-check 'the greetd user can read the greeter' 'getent passwd greetd >/dev/null && runuser -u greetd -- sh -c "cat /etc/xdg/quickshell/chauvenity-greeter/shell.qml /etc/xdg/quickshell/chauvenity-greeter/lock/LockFace.qml /etc/xdg/quickshell/chauvenity-greeter/lock/lock.mjs /etc/greetd/niri.kdl >/dev/null"'
+check 'the greetd user can read the greeter' 'getent passwd greetd >/dev/null && runuser -u greetd -- find /etc/xdg/quickshell/chauvenity-greeter /etc/xdg/quickshell/chauvenity-lock /etc/greetd/niri.kdl -type f -exec cat {} + >/dev/null'
 # tmpfiles creates the greeter user's home on a fresh install's empty /var, and
 # masks the chezmoi unit the chezmoi module enables for every user.
 check 'greeter home is created and chezmoi masked' 'r=$(mktemp -d); mkdir $r/etc; cp /etc/passwd /etc/group $r/etc/; systemd-tmpfiles --root=$r --create /usr/lib/tmpfiles.d/10-chauvenity-greetd.conf 2>&1; [ "$(readlink $r/var/lib/greetd/.config/systemd/user/chezmoi-init.service)" = /dev/null ] && [ "$(readlink $r/var/lib/greetd/.config/systemd/user/xdg-desktop-portal.service)" = /dev/null ]'
