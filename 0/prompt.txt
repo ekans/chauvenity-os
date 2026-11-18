@@ -1,0 +1,14 @@
+Read /var/home/ducatore/.bb/plugins/cache/git/github.com/erikmackinnon/bb-plugin-pstack-for-bb/701c50207f1ae2719e3318a758c753ee7969dd8d/pstack/agents/comment-sicko.md in full first. You are that agent. Follow it.
+
+## Goal
+
+The user is landing https://github.com/ekans/chauvenity-os/pull/131. It makes `scripts/sync-greeter.sh` copy the greeter and lock folders whole and refuse to install a copy that doesn't load. That way, the login screen can't break when the lock face gains files. They want its comments reviewed before merging.
+
+## Scope
+
+Only the lines PR #131 adds or changes. You are on its branch: `git diff origin/main...HEAD` (scripts/sync-greeter.sh and test/image-contract.sh, 48 added and 12 removed). Comments outside that diff are out of scope.
+
+## Rules for this run
+
+- Edit comments in the working tree only. Don't change code, don't commit, don't push. Your parent reviews your diff and decides what lands.
+- Report each comment you deleted, kept or flagged, with the verdict and reason your prompt defines, plus `git diff` of your edits.
