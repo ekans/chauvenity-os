@@ -1,0 +1,65 @@
+/bb-global-skills:poteto-mode Fix chauvenity-os's greeter sync so it can't ship a login screen that fails to load, and open a PR.
+
+## Goal
+
+The user is adding animated fireflies to their lock and login screens in ekans/dotfiles, in PR https://github.com/ekans/dotfiles/pull/23 (open, not merged). The login screen in this image is a copy of the dotfiles greeter, made by `scripts/sync-greeter.sh` and committed under `files/system/etc/xdg/quickshell/`. The user wants this repo ready for that PR, so the next sync can't break login.
+
+## The problem
+
+- `scripts/sync-greeter.sh` copies a hardcoded list of five files: three in `chauvenity-greeter/` plus `chauvenity-lock/LockFace.qml` and `lock.mjs`.
+- PR #23 makes `LockFace.qml` use new files: `chauvenity-lock/LockScene.qml`, `chauvenity-lock/Firefly.qml` and the sprites in `chauvenity-lock/art/` (`art/sprites.sh` regenerates them and doesn't need to ship).
+- A sync against #23 with today's list copies the new `LockFace.qml` without those files. In a test, Quickshell then failed with `LockScene is not a type`, and the login screen didn't load at all. Nothing warns whoever runs the sync. That could be weeks from now.
+- The sync only runs by hand ("Re-run after the greeter changes and commit the result"). Nothing in CI or the build calls it.
+
+## What to decide and build
+
+- Fixing it means the trap can't come back, not just that today's list gets longer. The list went stale silently once, and the next file added to the face would bring the trap back. Pick the structure yourself. Examples: derive what to copy from the dotfiles tree (everything the greeter loads, minus the lock's own shell.qml, lock.sh, tests and art/sprites.sh), or make the script refuse to finish unless the copied tree loads.
+- The script must work against dotfiles `main` today (no LockScene.qml) and against PR #23's branch `lock-and-login-14-fireflies-thr_x35b5jtbyd`, because the order the two PRs land in isn't settled.
+- Do not run the sync and commit a new greeter copy in this PR. #23 isn't merged, and the image must not ship unmerged dotfiles code. The PR changes the script (and docs that describe it) only.
+
+## How to check it
+
+- Run the new script against both dotfiles trees into a scratch destination, not the repo's `files/`. Show which files each run produced.
+- Load each produced greeter in niri-sandbox (see the dotfiles repo's AGENTS.md and `quickshell/chauvenity-greeter/tests/proof.sh` there) and show it reaches its idle screen without load errors.
+- Never `pkill` or `killall` `qs`, not even through `niri-sandbox run`. The sandbox shares the process list with the user's live session, and doing that killed their bar once already. Stop a sandbox instance with `qs kill -p <dir>`.
+- Read this repo's AGENTS.md and `.agents/skills/verify-chauvenity-os/features/greeter-login.md` first and follow them.
+
+## Done means
+
+A PR on ekans/chauvenity-os. Its body links https://github.com/ekans/dotfiles/pull/23, states the landing order you recommend, and gives the steps to run the sync once #23 is merged.
+
+---
+
+[bb system]
+
+@thread:thr_hkim2avzhx completed:
+
+The sync script is rewritten and committed as `8600fbf` on `greeter-sync-copy-what-the-lock-face-needs-thr_cjwcg2c53u`. It now copies the two greeter folders whole, minus a named skip list, and only installs a copy that Quickshell can load. That means syncing dotfiles PR #23 can no longer ship a login screen that dies with `LockScene is not a type`. Nothing was pushed and no PR was opened.
+
+**What changed.**
+- **`scripts/sync-greeter.sh`.** It copies every file under `chauvenity-greeter` and `chauvenity-lock` except the skip list, which gives a reason for each entry. It builds into a `mktemp -d` folder, recreates the `lock` symlink, and runs the offscreen `qs` load as a gate. The gate passes only when the `No PanelWindow backend loaded` line is the only error besides the `Failed to load configuration` header. Only then are the two folders in the destination replaced. `SYNC_GREETER_DST` overrides the destination, as the header says. The header also says in one sentence that a missing PNG gets past the gate.
+- **`test/image-contract.sh`.** The check `the greetd user can read the greeter` now has the greetd user read every file under both folders with `find -type f -exec cat {} +`. I kept `/etc/greetd/niri.kdl` in that check, because the old version read it too and the brief didn't mention it.
+- **The doc line** in `greeter-login.md:55` is still correct, so I left it alone.
+
+The diff is the one printed by the last command above.
+
+**The runs.** All destinations were scratch folders under `/tmp`, removed afterwards.
+- **Lint.** `bash -n` and `shellcheck` are clean. There is one inline `SC2053` disable, because the skip entries are meant to be globs.
+- **Criterion 1 (`dotfiles-main`).** The script printed `synced the greeter from e7a1bc5` and exited 0. It produced the five files plus `lock -> ../chauvenity-lock`, all mode 644. `diff -r` against the repo's committed `files/system/etc/xdg/quickshell` found them identical.
+- **Criterion 2 (`dotfiles-pr23`).** It printed `synced the greeter from f3a6e0d` and exited 0. It produced the same files plus `LockScene.qml`, `Firefly.qml` and `art/{glow,halo-ash,halo-ember,halo-green}.png`. There was no `sprites.sh`, `shell.qml`, `lock.sh` or `tests/`.
+- **Criterion 3 (LockScene.qml removed).** It exited 1, and a destination already filled by the criterion 2 run kept the same paths, sizes and timestamps. The staging folder was removed. stderr was:
+  ```
+   ERROR: Failed to load configuration
+   ERROR:   caused by @shell.qml[227:13]: Type GreeterFace unavailable
+   ERROR:   caused by @GreeterFace.qml[19:5]: Type LockFace unavailable
+   ERROR:   caused by @lock/LockFace.qml[76:5]: LockScene is not a type
+  sync-greeter: the copy does not load, nothing was installed
+  ```
+- **Two more cases.** With `greeter.mjs` removed, it exited 1 with `@greeter.mjs[-1:-1]: File not found`, and the destination folder was never created. With `art/glow.png` removed, it exited 0, as the brief predicted.
+- **The contract check.** No chauvenity image is built locally, so I ran the check's exact command in a Debian container with a `greetd` user and the PR #23 copy. It passed, and it failed with `Firefly.qml: Permission denied` once that file was mode 600. It has not been run against a real image.
+- **`git status --porcelain`** was empty after the commit, and nothing under `files/` changed.
+
+**Where the brief was off.** Nothing that mattered:
+- On the PR #23 tree the PanelWindow error is at `shell.qml[227:13]`, not `[211:9]`. The gate accepts any line number, so it works on both trees.
+- Each sync now deletes and replaces both folders, so a file dotfiles deletes also disappears from the image. The old script left such files behind.
+- If `qs` is missing or the 120 s timeout hits, the script prints the same "does not load" message. The printed log above it shows the real cause.
