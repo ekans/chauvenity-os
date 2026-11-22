@@ -112,4 +112,7 @@ check 'JetBrains Mono for the greeter clock' 'fc-list "JetBrains Mono" | grep -q
 check 'greetd PAM uses password-auth'       'pam=$(grep -v "^#" /etc/pam.d/greetd); ! grep -q "system-auth\|fprintd" <<<"$pam" && grep -qE "^auth +substack +password-auth" <<<"$pam"'
 check 'greetd PAM unlocks the keyring'      'grep -qE "^auth +optional +pam_gnome_keyring.so" /etc/pam.d/greetd && grep -qE "^session +optional +pam_gnome_keyring.so +auto_start" /etc/pam.d/greetd && test -e /usr/lib64/security/pam_gnome_keyring.so'
 
+# One crash must not write tens of GB (the systemd default caps are 32G).
+check 'core dumps are capped at 2G' 'c=$(systemd-analyze cat-config systemd/coredump.conf | grep -v "^#"); for k in ProcessSizeMax ExternalSizeMax; do [ "$(grep "^$k=" <<<"$c" | tail -1)" = "$k=2G" ] || { echo "$k is not 2G"; exit 1; }; done'
+
 exit $fail

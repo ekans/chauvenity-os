@@ -43,6 +43,8 @@ modules:
   # a fresh install. This module has to stay
   # after the dnf modules, since /etc/pam.d/greetd replaces the package's.
   #
+  # Also caps core dumps at 2G (files/system/usr/lib/systemd/coredump.conf.d).
+  #
   # Also creates /var/opt before BlueBuild links the /opt apps into it
   # (files/system/usr/lib/tmpfiles.d), so they exist on a fresh install's
   # first boot.
